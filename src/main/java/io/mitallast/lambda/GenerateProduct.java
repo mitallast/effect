@@ -35,6 +35,33 @@ public class GenerateProduct {
         }
         builder.append(");\n\n");
 
+        // curried functions
+
+        for (int c = arity - 1; c >= 1; c--) { // c = curried
+            builder.append("    default Function").append(c).append("<");
+            for (int i = arity - c + 1; i <= arity; i++) {
+                builder.append('T').append(i).append(", ");
+            }
+            builder.append("A> apply(");
+            for (int i = 1; i <= arity - c; i++) {
+                if (i > 1) builder.append(", ");
+                builder.append('T').append(i).append(" t").append(i);
+            }
+            builder.append(") {\n");
+            builder.append("        return (");
+            for (int i = arity - c + 1; i <= arity; i++) {
+                if (i > arity - c + 1) builder.append(", ");
+                builder.append('t').append(i);
+            }
+            builder.append(") -> apply(");
+            for (int i = 1; i <= arity; i++) {
+                if (i > 1) builder.append(", ");
+                builder.append("t").append(i);
+            }
+            builder.append(");\n");
+            builder.append("    }\n\n");
+        }
+
         // A apply(HList)
 
         builder.append("    default A apply(");
