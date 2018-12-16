@@ -2,11 +2,16 @@ package io.mitallast.maybe;
 
 import io.mitallast.monad.MonadCompanion;
 
-public class MaybeCompanion<T> implements MonadCompanion<T, Maybe, Maybe<T>> {
+public class MaybeCompanion implements MonadCompanion<Maybe> {
+    public final static MaybeCompanion instance = new MaybeCompanion();
+
+    private MaybeCompanion() {
+    }
+
     @Override
-    public Maybe<T> unit(T value) {
+    public <T> Maybe<T> unit(T value) {
         if (value == null) {
-            return new None<>();
+            return new Nothing<>();
         } else {
             return new Just<>(value);
         }

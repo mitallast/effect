@@ -1,18 +1,34 @@
 package io.mitallast;
 
-import io.mitallast.higher.Functor;
-import io.mitallast.lambda.Function1;
-import io.mitallast.maybe.Maybe;
+import io.mitallast.either.EitherApplicative;
+import io.mitallast.higher.Applicative;
+import io.mitallast.higher.Higher;
 import io.mitallast.maybe.MaybeCompanion;
-import io.mitallast.monad.MonadFunctor;
+import io.mitallast.monad.MonadApplicative;
 
 public class HigherExample {
+    private static <F extends Higher> Higher<F, Integer> program(Applicative<F> $) {
+        var p = $.pure(1);
+        var mapped = $.map(x -> x + 2, p);
+        return $.apply($.pure(x -> x + 3), mapped);
+    }
+
+    private static void maybeApply() {
+        var applicative = new MonadApplicative<>(MaybeCompanion.instance);
+        var x = program(applicative);
+        System.out.println("maybe:");
+        System.out.println(x);
+    }
+
+    private static void eitherApply() {
+        var applicative = new EitherApplicative<String>();
+        var x = program(applicative);
+        System.out.println("either:");
+        System.out.println(x);
+    }
+
     public static void main(String... args) {
-        Function1<Integer, Integer> increment = integer -> integer + 1;
-        var maybe = new MaybeCompanion<Integer>();
-        Maybe<Integer> one = maybe.unit(1);
-        Functor<Integer, Integer, Maybe, Maybe<Integer>, Maybe<Integer>> functor = new MonadFunctor<>(maybe);
-        Maybe<Integer> two = functor.map(increment, one);
-        System.out.println(two);
+        maybeApply();
+        eitherApply();
     }
 }
