@@ -1,20 +1,19 @@
 package io.mitallast;
 
+import io.mitallast.categories.Applicative;
 import io.mitallast.either.EitherApplicative;
-import io.mitallast.higher.Applicative;
 import io.mitallast.higher.Higher;
-import io.mitallast.maybe.MaybeCompanion;
-import io.mitallast.monad.MonadApplicative;
+import io.mitallast.maybe.MaybeApplicative;
 
 public class HigherExample {
     private static <F extends Higher> Higher<F, Integer> program(Applicative<F> $) {
         var p = $.pure(1);
-        var mapped = $.map(x -> x + 2, p);
-        return $.apply($.pure(x -> x + 3), mapped);
+        var mapped = $.map(p, x -> x + 2);
+        return $.ap($.pure(x -> x + 3), mapped);
     }
 
     private static void maybeApply() {
-        var applicative = new MonadApplicative<>(MaybeCompanion.instance);
+        var applicative = new MaybeApplicative();
         var x = program(applicative);
         System.out.println("maybe:");
         System.out.println(x);

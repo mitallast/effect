@@ -1,7 +1,6 @@
 package io.mitallast.maybe;
 
 import io.mitallast.lambda.Function1;
-import io.mitallast.monad.Monad;
 
 public class Just<T> extends Maybe<T> {
     private final T value;
@@ -15,8 +14,8 @@ public class Just<T> extends Maybe<T> {
     }
 
     @Override
-    public <B> Maybe<B> flatMap(Function1<T, Monad<Maybe, B>> fn) {
-        return (Maybe<B>) fn.apply(value);
+    public <B> Maybe<B> flatMap(Function1<T, Maybe<B>> fn) {
+        return fn.apply(value);
     }
 
     @Override

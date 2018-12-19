@@ -1,8 +1,9 @@
 package io.mitallast.either;
 
 import io.mitallast.higher.Higher;
+import io.mitallast.lambda.Function1;
+
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -24,7 +25,7 @@ public interface Either<L, R> extends Higher<Either<L, ?>, R> {
 
     RightProjection<L, R> right();
 
-    <C> C fold(Function<L, C> fa, Function<R, C> fb);
+    <C> C fold(Function1<L, C> fa, Function1<R, C> fb);
 
     Either<R, L> swap();
 
@@ -38,9 +39,9 @@ public interface Either<L, R> extends Higher<Either<L, ?>, R> {
 
     boolean exists(Predicate<R> f);
 
-    <C> Either<L, C> flatMap(Function<R, Either<L, C>> f);
+    <C> Either<L, C> flatMap(Function1<R, Either<L, C>> f);
 
-    <C> Either<L, C> map(Function<R, C> f);
+    <C> Either<L, C> map(Function1<R, C> f);
 
     Either<L, R> filterOrElse(Predicate<R> p, Supplier<L> zero);
 }

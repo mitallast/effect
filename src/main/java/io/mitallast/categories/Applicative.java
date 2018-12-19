@@ -12,6 +12,6 @@ public interface Applicative<F extends Higher> extends Apply<F> {
     }
 
     default <A, B> Higher<F, B> map(Higher<F, A> fa, Function1<A, B> f) {
-        return ap(pure(f));
+        return ap(pure(f), fa);
     }
 }

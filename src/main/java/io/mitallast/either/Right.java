@@ -1,10 +1,11 @@
 package io.mitallast.either;
 
+import io.mitallast.lambda.Function1;
+
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -30,7 +31,7 @@ final class Right<A, B> implements Either<A, B> {
     }
 
     @Override
-    public <C> C fold(Function<A, C> fa, Function<B, C> fb) {
+    public <C> C fold(Function1<A, C> fa, Function1<B, C> fb) {
         return fb.apply(value);
     }
 
@@ -65,12 +66,12 @@ final class Right<A, B> implements Either<A, B> {
     }
 
     @Override
-    public <C> Either<A, C> flatMap(Function<B, Either<A, C>> f) {
+    public <C> Either<A, C> flatMap(Function1<B, Either<A, C>> f) {
         return f.apply(value);
     }
 
     @Override
-    public <C> Either<A, C> map(Function<B, C> f) {
+    public <C> Either<A, C> map(Function1<B, C> f) {
         return new Right<>(f.apply(value));
     }
 
@@ -130,12 +131,12 @@ final class Right<A, B> implements Either<A, B> {
         }
 
         @Override
-        public Either<A, B> flatMap(Function<A, Either<A, B>> f) {
+        public Either<A, B> flatMap(Function1<A, Either<A, B>> f) {
             return new Right<>(e.value);
         }
 
         @Override
-        public Either<A, B> map(Function<A, A> f) {
+        public Either<A, B> map(Function1<A, A> f) {
             return new Right<>(e.value);
         }
 
@@ -178,12 +179,12 @@ final class Right<A, B> implements Either<A, B> {
         }
 
         @Override
-        public Either<A, B> flatMap(Function<B, Either<A, B>> f) {
+        public Either<A, B> flatMap(Function1<B, Either<A, B>> f) {
             return f.apply(e.value);
         }
 
         @Override
-        public Either<A, B> map(Function<B, B> f) {
+        public Either<A, B> map(Function1<B, B> f) {
             return new Right<>(f.apply(e.value));
         }
 
