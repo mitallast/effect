@@ -15,4 +15,9 @@ public interface Function2<T1, T2, A> {
         var hlist1 = hlist2.tail();
         return apply(hlist1.head(), hlist2.head());
     }
+
+    @SuppressWarnings("unchecked")
+    default <UT1 extends T1, UT2 extends T2, UA extends A> Function2<UT1, UT2, UA> cast() {
+        return (Function2<UT1, UT2, UA>) this;
+    }
 }

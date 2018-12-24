@@ -1,12 +1,12 @@
 package io.mitallast.either;
 
 import io.mitallast.lambda.Function1;
+import io.mitallast.lambda.Supplier;
 
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 final class Left<A, B> implements Either<A, B> {
     private final A value;

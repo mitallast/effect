@@ -8,8 +8,7 @@ import io.mitallast.kernel.Semigroup;
 import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
-
-import java.util.function.Supplier;
+import io.mitallast.lambda.Supplier;
 
 public final class SyncIO<A> implements Higher<SyncIO, A> {
     private final IO<A> toIO;
@@ -106,63 +105,67 @@ class SyncIOSync implements Sync<SyncIO>, StackSafeMonad<SyncIO> {
     }
 
     @Override
-    public <A> Higher<SyncIO, A> pure(A a) {
+    public <A> SyncIO<A> pure(A a) {
         return SyncIO.pure(a);
     }
 
     @Override
-    public Higher<SyncIO, Unit> unit() {
+    public SyncIO<Unit> unit() {
         return SyncIO.unit();
     }
 
     @Override
-    public <A, B> Higher<SyncIO, B> map(Higher<SyncIO, A> fa, Function1<A, B> f) {
-        return ((SyncIO<A>) fa).map(f);
+    public <A, B> SyncIO<B> map(Higher<SyncIO, A> fa, Function1<A, B> f) {
+        return $(fa).map(f);
     }
 
     @Override
-    public <A, B> Higher<SyncIO, B> flatMap(Higher<SyncIO, A> fa, Function1<A, Higher<SyncIO, B>> f) {
-        return ((SyncIO<A>) fa).flatMap(a -> (SyncIO<B>) f.apply(a));
+    public <A, B> SyncIO<B> flatMap(Higher<SyncIO, A> fa, Function1<A, Higher<SyncIO, B>> f) {
+        return $(fa).flatMap(f.cast());
     }
 
     @Override
-    public <A> Higher<SyncIO, Either<Throwable, A>> attempt(Higher<SyncIO, A> fa) {
-        return ((SyncIO<A>) fa).attempt();
+    public <A> SyncIO<Either<Throwable, A>> attempt(Higher<SyncIO, A> fa) {
+        return $(fa).attempt();
     }
 
     @Override
     public <A> Higher<SyncIO, A> handleErrorWith(Higher<SyncIO, A> fa, Function1<Throwable, Higher<SyncIO, A>> f) {
-        return ((SyncIO<A>) fa).handleErrorWith(e -> (SyncIO<A>) f.apply(e));
+        return $(fa).handleErrorWith(f.cast());
     }
 
     @Override
-    public <A> Higher<SyncIO, A> raiseError(Throwable e) {
+    public <A> SyncIO<A> raiseError(Throwable e) {
         return SyncIO.raiseError(e);
     }
 
     @Override
-    public <A, B> Higher<SyncIO, B> bracket(Higher<SyncIO, A> acquire, Function1<A, Higher<SyncIO, B>> use, Function1<A, Higher<SyncIO, Unit>> release) {
-        return ((SyncIO<A>) acquire).bracket(a -> (SyncIO<B>) use.apply(a), a -> (SyncIO<Unit>) release.apply(a));
+    public <A, B> SyncIO<B> bracket(Higher<SyncIO, A> acquire,
+                                    Function1<A, Higher<SyncIO, B>> use,
+                                    Function1<A, Higher<SyncIO, Unit>> release) {
+        return $(acquire).bracket(use.cast(), release.cast());
     }
 
     @Override
-    public <A, B> Higher<SyncIO, B> bracketCase(Higher<SyncIO, A> acquire, Function1<A, Higher<SyncIO, B>> use, Function2<A, ExitCase<Throwable>, Higher<SyncIO, Unit>> release) {
-        return ((SyncIO<A>) acquire).bracketCase(a -> (SyncIO<B>) use.apply(a), (a, ec) -> (SyncIO<Unit>) release.apply(a, ec));
+    public <A, B> SyncIO<B> bracketCase(Higher<SyncIO, A> acquire,
+                                        Function1<A, Higher<SyncIO, B>> use,
+                                        Function2<A, ExitCase<Throwable>, Higher<SyncIO, Unit>> release) {
+        return $(acquire).bracketCase(use.cast(), release.cast());
     }
 
     @Override
-    public <A> Higher<SyncIO, A> uncancelable(Higher<SyncIO, A> fa) {
-        return fa;
+    public <A> SyncIO<A> uncancelable(Higher<SyncIO, A> fa) {
+        return $(fa);
     }
 
     @Override
-    public <A> Higher<SyncIO, A> guarantee(Higher<SyncIO, A> fa, Higher<SyncIO, Unit> finalizer) {
-        return ((SyncIO<A>) fa).guarantee((SyncIO<Unit>) finalizer);
+    public <A> SyncIO<A> guarantee(Higher<SyncIO, A> fa, Higher<SyncIO, Unit> finalizer) {
+        return $(fa).guarantee($(finalizer));
     }
 
     @Override
-    public <A> Higher<SyncIO, A> guaranteeCase(Higher<SyncIO, A> fa, Function1<ExitCase<Throwable>, Higher<SyncIO, Unit>> finalizer) {
-        return ((SyncIO<A>) fa).guaranteeCase(ec -> (SyncIO<Unit>) finalizer.apply(ec));
+    public <A> SyncIO<A> guaranteeCase(Higher<SyncIO, A> fa, Function1<ExitCase<Throwable>, Higher<SyncIO, Unit>> finalizer) {
+        return $(fa).guaranteeCase(finalizer.cast());
     }
 
     @Override
@@ -172,7 +175,11 @@ class SyncIOSync implements Sync<SyncIO>, StackSafeMonad<SyncIO> {
 
     @Override
     public <A> Higher<SyncIO, A> suspend(Supplier<Higher<SyncIO, A>> thunk) {
-        return SyncIO.suspend(() -> (SyncIO<A>) thunk.get());
+        return SyncIO.suspend(thunk.cast());
+    }
+
+    private <A> SyncIO<A> $(Higher<SyncIO, A> higher) {
+        return (SyncIO<A>) higher;
     }
 }
 

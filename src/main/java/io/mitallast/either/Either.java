@@ -2,10 +2,10 @@ package io.mitallast.either;
 
 import io.mitallast.higher.Higher;
 import io.mitallast.lambda.Function1;
+import io.mitallast.lambda.Supplier;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 public interface Either<L, R> extends Higher<Either<L, ?>, R> {
 

@@ -3,9 +3,9 @@ package io.mitallast.categories;
 import io.mitallast.either.Either;
 import io.mitallast.higher.Higher;
 import io.mitallast.lambda.Function1;
+import io.mitallast.lambda.Supplier;
 
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 public interface MonadError<F extends Higher, E> extends ApplicativeError<F, E>, Monad<F> {
     default <A> Higher<F, A> ensure(Higher<F, A> fa, Supplier<E> error, Predicate<A> predicate) {

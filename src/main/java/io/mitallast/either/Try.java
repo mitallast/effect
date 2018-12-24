@@ -1,9 +1,9 @@
 package io.mitallast.either;
 
 import io.mitallast.higher.Higher;
+import io.mitallast.lambda.Supplier;
 import io.mitallast.maybe.Maybe;
 
-import java.util.function.Supplier;
 
 public abstract class Try<A> implements Higher<Try, A> {
     private Try() {

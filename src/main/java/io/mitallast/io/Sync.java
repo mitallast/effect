@@ -1,8 +1,7 @@
 package io.mitallast.io;
 
+import io.mitallast.lambda.Supplier;
 import io.mitallast.higher.Higher;
-
-import java.util.function.Supplier;
 
 /**
  * A monad that can suspend the execution of side effects

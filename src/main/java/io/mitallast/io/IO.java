@@ -9,6 +9,7 @@ import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.lambda.Function4;
+import io.mitallast.lambda.Supplier;
 import io.mitallast.maybe.Maybe;
 import io.mitallast.product.Tuple2;
 
@@ -18,7 +19,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import static io.mitallast.io.internals.IOPlatform.fusionMaxStackDepth;
 
@@ -877,22 +877,22 @@ public abstract class IO<A> implements Higher<IO, A> {
 
         @Override
         public <A, B> IO<B> map(Higher<IO, A> fa, Function1<A, B> f) {
-            return ((IO<A>) fa).map(f);
+            return $(fa).map(f);
         }
 
         @Override
-        public <A, B> Higher<IO, B> flatMap(Higher<IO, A> fa, Function1<A, Higher<IO, B>> f) {
-            return ((IO<A>) fa).flatMap(a -> (IO<B>) f.apply(a));
+        public <A, B> IO<B> flatMap(Higher<IO, A> fa, Function1<A, Higher<IO, B>> f) {
+            return $(fa).flatMap(f.cast());
         }
 
         @Override
         public <A> IO<Either<Throwable, A>> attempt(Higher<IO, A> fa) {
-            return ((IO<A>) fa).attempt();
+            return $(fa).attempt();
         }
 
         @Override
         public <A> IO<A> handleErrorWith(Higher<IO, A> fa, Function1<Throwable, Higher<IO, A>> f) {
-            return ((IO<A>) fa).handleErrorWith(e -> (IO<A>) f.apply(e));
+            return $(fa).handleErrorWith(f.cast());
         }
 
         @Override
@@ -904,35 +904,29 @@ public abstract class IO<A> implements Higher<IO, A> {
         public <A, B> IO<B> bracket(Higher<IO, A> acquire,
                                     Function1<A, Higher<IO, B>> use,
                                     Function1<A, Higher<IO, Unit>> release) {
-            return ((IO<A>) acquire).bracket(
-                a -> (IO<B>) use.apply(a),
-                a -> (IO<Unit>) release.apply(a)
-            );
+            return ((IO<A>) acquire).bracket(use.cast(), release.cast());
         }
 
         @Override
         public <A, B> IO<B> bracketCase(Higher<IO, A> acquire,
                                         Function1<A, Higher<IO, B>> use,
                                         Function2<A, ExitCase<Throwable>, Higher<IO, Unit>> release) {
-            return ((IO<A>) acquire).bracketCase(
-                a -> (IO<B>) use.apply(a),
-                (a, ec) -> (IO<Unit>) release.apply(a, ec)
-            );
+            return $(acquire).bracketCase(use.cast(), release.cast());
         }
 
         @Override
         public <A> IO<A> uncancelable(Higher<IO, A> fa) {
-            return ((IO<A>) fa).uncancelable();
+            return $(fa).uncancelable();
         }
 
         @Override
         public <A> IO<A> guarantee(Higher<IO, A> fa, Higher<IO, Unit> finalizer) {
-            return ((IO<A>) fa).guarantee((IO<Unit>) finalizer);
+            return $(fa).guarantee($(finalizer));
         }
 
         @Override
         public <A> IO<A> guaranteeCase(Higher<IO, A> fa, Function1<ExitCase<Throwable>, Higher<IO, Unit>> finalizer) {
-            return ((IO<A>) fa).guaranteeCase(ec -> (IO<Unit>) finalizer.apply(ec));
+            return $(fa).guaranteeCase(finalizer.cast());
         }
 
         @Override
@@ -942,7 +936,7 @@ public abstract class IO<A> implements Higher<IO, A> {
 
         @Override
         public <A> IO<A> suspend(Supplier<Higher<IO, A>> thunk) {
-            return IO.suspend(() -> (IO<A>) thunk.get());
+            return IO.suspend(thunk.cast());
         }
 
         @Override
@@ -952,7 +946,7 @@ public abstract class IO<A> implements Higher<IO, A> {
 
         @Override
         public <A> IO<A> asyncF(Function1<Consumer<Either<Throwable, A>>, Higher<IO, Unit>> k) {
-            return IO.asyncF(cb -> (IO<Unit>) k.apply(cb));
+            return IO.asyncF(k.cast());
         }
 
         @Override
@@ -962,12 +956,16 @@ public abstract class IO<A> implements Higher<IO, A> {
 
         @Override
         public <A> IO<A> toIO(Higher<IO, A> fa) {
-            return (IO<A>) fa;
+            return $(fa);
         }
 
         @Override
         public <A> SyncIO<Unit> runAsync(Higher<IO, A> fa, Function1<Either<Throwable, A>, IO<Unit>> cb) {
-            return ((IO<A>) fa).runAsync(cb);
+            return $(fa).runAsync(cb);
+        }
+
+        private <A> IO<A> $(Higher<IO, A> higher) {
+            return (IO<A>) higher;
         }
     }
 
@@ -980,37 +978,41 @@ public abstract class IO<A> implements Higher<IO, A> {
 
         @Override
         public <A> IO<Fiber<IO, A>> start(Higher<IO, A> fa) {
-            return ((IO<A>) fa).start(cs);
+            return $(fa).start(cs);
         }
 
         @Override
         public <A, B> IO<Either<A, B>> race(Higher<IO, A> fa, Higher<IO, B> fb) {
-            return IO.race((IO<A>) fa, (IO<B>) fb, cs);
+            return IO.race($(fa), $(fb), cs);
         }
 
         @Override
         public <A, B> IO<Either<Tuple2<A, Fiber<IO, B>>, Tuple2<Fiber<IO, A>, B>>> racePair(Higher<IO, A> fa, Higher<IO, B> fb) {
-            return IO.racePair((IO<A>) fa, (IO<B>) fb, cs);
+            return IO.racePair($(fa), $(fb), cs);
         }
 
         @Override
         public <A> IO<A> cancelable(Function1<Consumer<Either<Throwable, A>>, Higher<IO, Unit>> k) {
-            return IO.cancelable(e -> (IO<Unit>) k.apply(e));
+            return IO.cancelable(k.cast());
         }
 
         @Override
         public <A> SyncIO<Higher<IO, Unit>> runCancelable(Higher<IO, A> fa, Function1<Either<Throwable, A>, IO<Unit>> cb) {
-            return ((IO<A>) fa).runCancelable(cb).map(a -> a);
+            return $(fa).runCancelable(cb).map(a -> a);
         }
 
         @Override
         public <A> IO<A> toIO(Higher<IO, A> fa) {
-            return (IO<A>) fa;
+            return $(fa);
         }
 
         @Override
         public <A> IO<A> liftIO(IO<A> ioa) {
             return ioa;
+        }
+
+        private <A> IO<A> $(Higher<IO, A> higher) {
+            return (IO<A>) higher;
         }
     }
 }

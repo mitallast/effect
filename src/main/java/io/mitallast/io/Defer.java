@@ -1,8 +1,7 @@
 package io.mitallast.io;
 
 import io.mitallast.higher.Higher;
-
-import java.util.function.Supplier;
+import io.mitallast.lambda.Supplier;
 
 /**
  * Defer is a type class that shows the ability to defer creation
