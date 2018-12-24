@@ -69,14 +69,14 @@ public final class ForwardCancelable {
     }
 
     public final static class IsEmpty extends State {
-        public static IsEmpty instance = new IsEmpty();
+        public static final IsEmpty instance = new IsEmpty();
 
         private IsEmpty() {
         }
     }
 
     public final static class IsCanceled extends State {
-        public static IsCanceled instance = new IsCanceled();
+        public static final IsCanceled instance = new IsCanceled();
 
         private IsCanceled() {
         }

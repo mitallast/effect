@@ -1,9 +1,9 @@
 package io.mitallast.io.internals;
 
-import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
-public final class ArrayStack<A> extends ArrayList<A> {
+public final class ArrayStack<A> {
     public ArrayStack() {
         this(8);
     }
@@ -86,6 +86,9 @@ public final class ArrayStack<A> extends ArrayList<A> {
                 if (index == 0) {
                     array = (Object[]) array[0];
                     index = modulo;
+                }
+                if (array[index] == null) {
+                    throw new NoSuchElementException();
                 }
                 A result = (A) array[index];
                 index -= 1;
