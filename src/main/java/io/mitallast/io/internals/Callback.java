@@ -13,16 +13,7 @@ import static io.mitallast.io.internals.TrampolineEC.immediate;
 public interface Callback {
     static <A> Consumer<Either<Throwable, A>> report() {
         var logger = LogManager.getLogger();
-        return e -> e.fold(
-            err -> {
-                logger.error(err);
-                return Unit.unit();
-            },
-            a -> {
-                logger.trace(a);
-                return Unit.unit();
-            }
-        );
+        return e -> e.foreach(logger::error, logger::trace);
     }
 
     static <A> Consumer<A> dummy() {
@@ -46,7 +37,7 @@ public interface Callback {
     }
 
     static <A> Consumer<Either<Throwable, A>> promise(CompletableFuture<A> p) {
-        return e -> e.fold(p::completeExceptionally, p::complete);
+        return e -> e.foreach(p::completeExceptionally, p::complete);
     }
 }
 

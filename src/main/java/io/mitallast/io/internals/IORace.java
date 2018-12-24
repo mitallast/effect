@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 
 public interface IORace {
 
-    private static <T, U> Unit onSuccess(
+    private static <T, U> void onSuccess(
         AtomicBoolean isActive,
         IOConnection main,
         IOConnection other,
@@ -28,10 +28,9 @@ public interface IORace {
                 maybeReport(r2);
             });
         }
-        return Unit.unit();
     }
 
-    private static <T> Unit onError(
+    private static <T> void onError(
         AtomicBoolean isActive,
         Consumer<Either<Throwable, T>> cb,
         IOConnection main,
@@ -46,7 +45,6 @@ public interface IORace {
         } else {
             IOLogger.reportFailure(err);
         }
-        return Unit.unit();
     }
 
     static <A, B> IO<Either<A, B>> simple(ContextShift<IO> cs, IO<A> lh, IO<B> rh) {
@@ -56,12 +54,12 @@ public interface IORace {
             var connR = IOConnection.apply();
             conn.pushPair(connL, connR);
 
-            IORunLoop.startCancelable(IOForkedStart.apply(lh, cs), connL, e -> e.fold(
+            IORunLoop.startCancelable(IOForkedStart.apply(lh, cs), connL, e -> e.foreach(
                 err -> onError(active, cb, conn, connR, err),
                 a -> onSuccess(active, conn, connR, cb, Either.left(a))
             ));
 
-            IORunLoop.startCancelable(IOForkedStart.apply(rh, cs), connR, e -> e.fold(
+            IORunLoop.startCancelable(IOForkedStart.apply(rh, cs), connR, e -> e.foreach(
                 err -> onError(active, cb, conn, connL, err),
                 a -> onSuccess(active, conn, connL, cb, Either.right(a))
             ));
@@ -87,7 +85,7 @@ public interface IORace {
             // before callback is invoked in onSuccess / onError
             conn.pushPair(connL, connR);
 
-            IORunLoop.startCancelable(IOForkedStart.apply(lh, cs), connL, e -> e.fold(
+            IORunLoop.startCancelable(IOForkedStart.apply(lh, cs), connL, e -> e.foreach(
                 err -> {
                     if (active.getAndSet(false)) {
                         connR.cancel().unsafeRunAsync(r2 -> {
@@ -97,7 +95,6 @@ public interface IORace {
                     } else {
                         promiseL.complete(Either.left(err));
                     }
-                    return Unit.unit();
                 },
                 a -> {
                     if (active.getAndSet(false)) {
@@ -106,10 +103,9 @@ public interface IORace {
                     } else {
                         promiseL.complete(Either.right(a));
                     }
-                    return Unit.unit();
                 }
             ));
-            IORunLoop.startCancelable(IOForkedStart.apply(rh, cs), connR, e -> e.fold(
+            IORunLoop.startCancelable(IOForkedStart.apply(rh, cs), connR, e -> e.foreach(
                 err -> {
                     if (active.getAndSet(false)) {
                         connL.cancel().unsafeRunAsync(r2 -> {
@@ -119,7 +115,6 @@ public interface IORace {
                     } else {
                         promiseR.complete(Either.left(err));
                     }
-                    return Unit.unit();
                 },
                 b -> {
                     if (active.getAndSet(false)) {
@@ -128,20 +123,14 @@ public interface IORace {
                     } else {
                         promiseR.complete(Either.right(b));
                     }
-                    return Unit.unit();
                 }
             ));
         }, true);
     }
 
     private static <A> void maybeReport(Either<Throwable, A> r) {
-        r.fold(
-            err -> {
-                IOLogger.reportFailure(err);
-                return Unit.unit();
-            },
-            a -> Unit.unit()
-        );
+        r.foreach(IOLogger::reportFailure, a -> {
+        });
     }
 
     private static <A> Throwable composeErrors(Throwable e, Either<Throwable, A> r) {

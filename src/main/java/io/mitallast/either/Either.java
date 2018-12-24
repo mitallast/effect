@@ -27,6 +27,8 @@ public interface Either<L, R> extends Higher<Either<L, ?>, R> {
 
     <C> C fold(Function1<L, C> fa, Function1<R, C> fb);
 
+    void foreach(Consumer<L> fa, Consumer<R> fb);
+
     Either<R, L> swap();
 
     void foreach(Consumer<R> f);

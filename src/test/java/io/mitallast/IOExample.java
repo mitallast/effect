@@ -2,7 +2,6 @@ package io.mitallast;
 
 import io.mitallast.concurrent.ExecutionContext;
 import io.mitallast.io.IO;
-import io.mitallast.kernel.Unit;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -31,15 +30,6 @@ public class IOExample {
             .attempt()
             .unsafeRunSync();
 
-        result.fold(
-            err -> {
-                err.printStackTrace();
-                return Unit.unit();
-            },
-            a -> {
-                System.out.println(a);
-                return Unit.unit();
-            }
-        );
+        result.foreach(Throwable::printStackTrace, System.out::println);
     }
 }

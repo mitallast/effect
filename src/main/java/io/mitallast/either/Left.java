@@ -35,6 +35,11 @@ final class Left<A, B> implements Either<A, B> {
     }
 
     @Override
+    public void foreach(Consumer<A> fa, Consumer<B> fb) {
+        fa.accept(value);
+    }
+
+    @Override
     public Either<B, A> swap() {
         return new Right<>(value);
     }

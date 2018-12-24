@@ -73,11 +73,8 @@ public abstract class IOBracket {
 
         @Override
         public void run() {
-            result.fold(
-                err -> {
-                    cb.accept(Either.left(err));
-                    return unit();
-                },
+            result.foreach(
+                err -> cb.accept(Either.left(err)),
                 a -> {
                     var frame = new BracketReleaseFrame<A, B>(a, release, conn);
                     IO<B> fb;
@@ -92,7 +89,6 @@ public abstract class IOBracket {
                     conn.push(frame.cancel());
                     // Actual execution
                     IORunLoop.startCancelable(onNext, conn, cb);
-                    return unit();
                 }
             );
         }

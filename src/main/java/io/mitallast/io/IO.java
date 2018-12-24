@@ -247,7 +247,7 @@ public abstract class IO<A> implements Higher<IO, A> {
      */
     public final CompletableFuture<A> unsafeToFuture() {
         var p = new CompletableFuture<A>();
-        unsafeRunAsync(e -> e.fold(p::completeExceptionally, p::complete));
+        unsafeRunAsync(e -> e.foreach(p::completeExceptionally, p::complete));
         return p;
     }
 

@@ -316,15 +316,9 @@ final class RestartCallback<A> implements Consumer<Either<Throwable, A>>, Runnab
         // Auto-cancelable logic: in case the connection was cancelled,
         // we interrupt the bind continuation
         if (!conn.isCanceled()) {
-            either.fold(
-                err -> {
-                    IORunLoop.loop(IO.raiseError(err), conn, cb, this, bFirst, bRest);
-                    return Unit.unit();
-                },
-                success -> {
-                    IORunLoop.loop(IO.pure(success), conn, cb, this, bFirst, bRest);
-                    return Unit.unit();
-                }
+            either.foreach(
+                err -> IORunLoop.loop(IO.raiseError(err), conn, cb, this, bFirst, bRest),
+                success -> IORunLoop.loop(IO.pure(success), conn, cb, this, bFirst, bRest)
             );
         }
     }
