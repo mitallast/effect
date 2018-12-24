@@ -1,6 +1,8 @@
 package io.mitallast.list;
 
 import io.mitallast.higher.Higher;
+import io.mitallast.lambda.Function1;
+import io.mitallast.lambda.Function2;
 
 public abstract class List<A> implements Higher<List, A> {
     private List() {
@@ -18,8 +20,63 @@ public abstract class List<A> implements Higher<List, A> {
 
     public abstract List<A> tail();
 
-    public List<A> prepend(A value) {
+    public final List<A> prepend(A value) {
         return new Cons<>(value, this);
+    }
+
+    public final List<A> prepend(final List<A> all) {
+        List<A> next = all;
+        List<A> current = this;
+        do {
+            if (next.isEmpty()) {
+                return current;
+            } else {
+                current = current.prepend(next.head());
+                next = next.tail();
+            }
+        } while (true);
+    }
+
+    public <B> List<B> map(Function1<A, B> f) {
+        List<A> current = this;
+        List<B> build = nil();
+        do {
+            if (current.isEmpty()) {
+                return build;
+            } else {
+                build = build.prepend(f.apply(current.head()));
+                current = current.tail();
+            }
+
+        } while (true);
+    }
+
+    public <B> List<B> flatMap(Function1<A, List<B>> f) {
+        List<A> current = this;
+        List<B> build = nil();
+        do {
+            if (current.isEmpty()) {
+                return build;
+            } else {
+                var flat = f.apply(current.head());
+                build = build.prepend(flat);
+                current = current.tail();
+            }
+
+        } while (true);
+    }
+
+    public <B> B foldLeft(final B b, final Function2<B, A, B> f) {
+        List<A> current = this;
+        B acc = b;
+        do {
+            if (current.isEmpty()) {
+                return acc;
+            } else {
+                acc = f.apply(acc, current.head());
+                current = current.tail();
+            }
+        } while (true);
     }
 
     private static final class Cons<A> extends List<A> {
