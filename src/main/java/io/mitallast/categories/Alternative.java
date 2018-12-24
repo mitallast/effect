@@ -4,7 +4,7 @@ import io.mitallast.higher.Higher;
 import io.mitallast.higher.Higher2;
 import io.mitallast.product.Tuple2;
 
-public interface Alternative<F extends Higher & Monad> extends Applicative<F>, MonoidK<F> {
+public interface Alternative<F extends Higher> extends Applicative<F>, MonoidK<F> {
 
     default <G extends Higher, A> Higher<F, A> unite(
         Higher<F, Higher<G, A>> fga,
