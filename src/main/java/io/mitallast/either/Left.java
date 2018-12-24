@@ -127,7 +127,7 @@ final class Left<A, B> implements Either<A, B> {
 
         @Override
         public Either<A, B> flatMap(Function1<A, Either<A, B>> f) {
-            return null;
+            return f.apply(e.value);
         }
 
         @Override

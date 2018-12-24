@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-interface RightProjection<A, B> {
+public interface RightProjection<A, B> {
     B get();
 
     void foreach(Consumer<B> f);

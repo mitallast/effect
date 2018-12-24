@@ -5,7 +5,7 @@ import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 
 public interface Applicative<F extends Higher> extends Apply<F> {
-    <A> Higher<F, A> pure(A x);
+    <A> Higher<F, A> pure(A a);
 
     default Higher<F, Unit> unit() {
         return pure(Unit.unit());
