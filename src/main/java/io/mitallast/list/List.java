@@ -4,7 +4,10 @@ import io.mitallast.higher.Higher;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 
-public abstract class List<A> implements Higher<List, A> {
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+public abstract class List<A> implements Iterable<A>, Higher<List, A> {
     private List() {
     }
 
@@ -113,6 +116,11 @@ public abstract class List<A> implements Higher<List, A> {
         public List<A> tail() {
             return tail;
         }
+
+        @Override
+        public Iterator<A> iterator() {
+            return new ListIterator<>(this);
+        }
     }
 
     private static final class Nil<A> extends List<A> {
@@ -137,6 +145,45 @@ public abstract class List<A> implements Higher<List, A> {
         @Override
         public List<A> tail() {
             return this;
+        }
+
+        @Override
+        public Iterator<A> iterator() {
+            return new Iterator<>() {
+                @Override
+                public boolean hasNext() {
+                    return false;
+                }
+
+                @Override
+                public A next() {
+                    throw new NoSuchElementException();
+                }
+            };
+        }
+    }
+
+    private static final class ListIterator<A> implements Iterator<A> {
+        private List<A> head;
+
+        private ListIterator(List<A> head) {
+            this.head = head;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return head.nonEmpty();
+        }
+
+        @Override
+        public A next() {
+            if (head.isEmpty()) {
+                throw new NoSuchElementException();
+            } else {
+                var value = head.head();
+                head = head.tail();
+                return value;
+            }
         }
     }
 

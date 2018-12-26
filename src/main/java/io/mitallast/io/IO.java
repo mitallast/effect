@@ -614,8 +614,12 @@ public abstract class IO<A> implements Higher<IO, A> {
         return e.fold(IO::raiseError, IO::pure);
     }
 
+    public static ContextShift<IO> contextShift(ExecutionContext ec) {
+        return IOContextShift.apply(ec);
+    }
+
     public static IO<Unit> shift(ExecutionContext ec) {
-        return shift(IOContextShift.apply(ec));
+        return shift(contextShift(ec));
     }
 
     public static IO<Unit> shift(ContextShift<IO> cs) {

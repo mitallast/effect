@@ -1,8 +1,6 @@
 package io.mitallast.io.internals;
 
 import io.mitallast.either.Either;
-import io.mitallast.kernel.Unit;
-import org.apache.logging.log4j.LogManager;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -12,8 +10,8 @@ import static io.mitallast.io.internals.TrampolineEC.immediate;
 
 public interface Callback {
     static <A> Consumer<Either<Throwable, A>> report() {
-        var logger = LogManager.getLogger();
-        return e -> e.foreach(logger::error, logger::trace);
+        return e -> e.foreach(IOLogger::reportFailure, a -> {
+        });
     }
 
     static <A> Consumer<A> dummy() {

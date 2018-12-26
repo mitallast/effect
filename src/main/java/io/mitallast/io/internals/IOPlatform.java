@@ -3,6 +3,7 @@ package io.mitallast.io.internals;
 import io.mitallast.either.Either;
 import io.mitallast.either.Try;
 import io.mitallast.io.IO;
+import io.mitallast.list.List;
 import io.mitallast.maybe.Maybe;
 
 import java.time.Duration;
@@ -68,6 +69,14 @@ public interface IOPlatform {
     static Throwable composeErrors(Throwable first, Throwable... rest) {
         for (Throwable e : rest) {
             first.addSuppressed(e);
+        }
+        return first;
+    }
+
+    static Throwable composeErrors(Throwable first, List<Throwable> rest) {
+        while (rest.nonEmpty()) {
+            first.addSuppressed(rest.head());
+            rest = rest.tail();
         }
         return first;
     }

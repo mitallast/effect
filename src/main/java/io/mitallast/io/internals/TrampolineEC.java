@@ -4,12 +4,8 @@ import io.mitallast.concurrent.BlockContext;
 import io.mitallast.concurrent.ExecutionContext;
 import io.mitallast.concurrent.Task;
 import io.mitallast.kernel.Unit;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 final class TrampolineEC implements ExecutionContext {
-    private final static Logger logger = LogManager.getLogger();
-
     private final ExecutionContext underlying;
 
     private final ThreadLocal<Trampoline> trampoline = new ThreadLocal<>() {
@@ -41,7 +37,7 @@ final class TrampolineEC implements ExecutionContext {
 
         @Override
         public void reportFailure(Throwable e) {
-            logger.fatal(e);
+            IOLogger.reportFailure(e);
         }
     });
 

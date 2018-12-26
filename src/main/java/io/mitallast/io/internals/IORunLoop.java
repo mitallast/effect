@@ -2,7 +2,6 @@ package io.mitallast.io.internals;
 
 import io.mitallast.either.Either;
 import io.mitallast.io.IO;
-import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function4;
 

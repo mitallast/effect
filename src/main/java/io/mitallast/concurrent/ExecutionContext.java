@@ -1,5 +1,8 @@
 package io.mitallast.concurrent;
 
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
+
 /**
  * An `ExecutionContext` can execute program logic asynchronously,
  * typically but not necessarily on a thread pool.
@@ -59,4 +62,16 @@ public interface ExecutionContext {
     static <T> T blocking(Task<T> body) {
         return BlockContext.current().blockOn(body);
     }
+
+    ExecutionContextExecutor global = fromExecutor(null);
+
+    static ExecutionContextExecutor fromExecutor(Executor executor) {
+        return fromExecutor(executor, defaultReporter);
+    }
+
+    static ExecutionContextExecutor fromExecutor(Executor executor, Consumer<Throwable> reporter) {
+        return DefaultExecutionContext.fromExecutor(executor, reporter);
+    }
+
+    Consumer<Throwable> defaultReporter = Throwable::printStackTrace;
 }

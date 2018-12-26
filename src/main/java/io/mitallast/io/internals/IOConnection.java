@@ -127,12 +127,14 @@ public abstract class IOConnection {
 
         @Override
         public IO<Unit> cancel() {
-            var list = state.getAndSet(null);
-            if (list == null || list.isEmpty()) {
-                return IO.unit();
-            } else {
-                return CancelUtils.cancelAll(list);
-            }
+            return IO.suspend(() -> {
+                var list = state.getAndSet(null);
+                if (list == null || list.isEmpty()) {
+                    return IO.unit();
+                } else {
+                    return CancelUtils.cancelAll(list);
+                }
+            });
         }
 
         @Override

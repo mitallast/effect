@@ -39,9 +39,11 @@ public interface Effect<F extends Higher> extends Async<F> {
      * [[Effect.toIO]] default implementation, derived from [[Effect.runAsync]].
      */
     static <F extends Higher, A> IO<A> toIOFromRunAsync(Higher<F, A> fa, Effect<F> F) {
-        return IO.async(cb -> F.runAsync(fa, r -> IO.delay(() -> {
-            cb.accept(r);
-            return Unit.unit();
-        })).unsafeRunSync());
+        return new IO.Async<>((conn, cb) -> {
+            F.runAsync(fa, r -> IO.delay(() -> {
+                cb.accept(r);
+                return Unit.unit();
+            }));
+        });
     }
 }

@@ -7,7 +7,6 @@ import io.mitallast.kernel.Unit;
 
 import java.time.Duration;
 
-import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.concurrent.Executors;
@@ -41,8 +40,8 @@ public final class IOTimer implements Timer<IO> {
             // Doing what IO.cancelable does
             var ref = ForwardCancelable.apply();
             conn.push(ref.cancel());
-            var f = sc.schedule(new ShiftTick(conn, cb, ec), duration.get(MILLIS), MILLISECONDS);
-            ref.set(IO.apply(() -> {
+            var f = sc.schedule(new ShiftTick(conn, cb, ec), duration.toMillis(), MILLISECONDS);
+            ref.set(IO.delay(() -> {
                 f.cancel(false);
                 return Unit.unit();
             }));
