@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-final class Left<A, B> implements Either<A, B> {
+public final class Left<A, B> implements Either<A, B> {
     private final A value;
 
     Left(A value) {

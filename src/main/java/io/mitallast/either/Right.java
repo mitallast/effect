@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-final class Right<A, B> implements Either<A, B> {
+public final class Right<A, B> implements Either<A, B> {
     private final B value;
 
     Right(B value) {

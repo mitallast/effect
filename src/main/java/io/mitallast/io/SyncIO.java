@@ -3,6 +3,7 @@ package io.mitallast.io;
 import io.mitallast.categories.StackSafeMonad;
 import io.mitallast.either.Either;
 import io.mitallast.higher.Higher;
+import io.mitallast.kernel.Eval;
 import io.mitallast.kernel.Monoid;
 import io.mitallast.kernel.Semigroup;
 import io.mitallast.kernel.Unit;
@@ -79,6 +80,14 @@ public final class SyncIO<A> implements Higher<SyncIO, A> {
 
     public static SyncIO<Unit> unit() {
         return new SyncIO<>(IO.unit());
+    }
+
+    public static <A> SyncIO<A> eval(Eval<A> fa) {
+        if (fa instanceof Eval.Now) {
+            return pure(fa.value());
+        } else {
+            return apply(fa::value);
+        }
     }
 
     public static <A> SyncIO<A> raiseError(Throwable e) {

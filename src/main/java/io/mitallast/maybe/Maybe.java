@@ -20,12 +20,26 @@ public abstract class Maybe<T> implements Higher<Maybe, T> {
 
     abstract public T getOrElse(T other);
 
+    abstract public boolean isDefined();
+
+    public boolean nonEmpty() {
+        return isDefined();
+    }
+
+    public boolean isEmpty() {
+        return !isDefined();
+    }
+
     public static <T> Maybe<T> apply(T value) {
         if (value == null) {
             return none();
         } else {
             return new Just<>(value);
         }
+    }
+
+    public static <T> Maybe<T> some(T value) {
+        return new Just<>(value);
     }
 
     public static <T> Maybe<T> none() {
@@ -73,6 +87,11 @@ public abstract class Maybe<T> implements Higher<Maybe, T> {
         }
 
         @Override
+        public boolean isDefined() {
+            return true;
+        }
+
+        @Override
         public String toString() {
             return "Just(" + value + ')';
         }
@@ -105,6 +124,11 @@ public abstract class Maybe<T> implements Higher<Maybe, T> {
         @Override
         public T getOrElse(T other) {
             return other;
+        }
+
+        @Override
+        public boolean isDefined() {
+            return false;
         }
 
         @Override

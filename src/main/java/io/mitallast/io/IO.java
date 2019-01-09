@@ -5,6 +5,7 @@ import io.mitallast.concurrent.ExecutionContext;
 import io.mitallast.either.Either;
 import io.mitallast.higher.Higher;
 import io.mitallast.io.internals.*;
+import io.mitallast.kernel.Eval;
 import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
@@ -545,6 +546,14 @@ public abstract class IO<A> implements Higher<IO, A> {
 
     public static IO<Unit> unit() {
         return new Pure<>(Unit.unit());
+    }
+
+    public static <A> IO<A> eval(Eval<A> fa) {
+        if (fa instanceof Eval.Now) {
+            return pure(fa.value());
+        } else {
+            return apply(fa::value);
+        }
     }
 
     public static <A> IO<A> async(Consumer<Consumer<Either<Throwable, A>>> k) {
