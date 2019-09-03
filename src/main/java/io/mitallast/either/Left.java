@@ -2,6 +2,7 @@ package io.mitallast.either;
 
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Supplier;
+import io.mitallast.maybe.Maybe;
 
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -81,6 +82,16 @@ public final class Left<A, B> implements Either<A, B> {
     @Override
     public Either<A, B> filterOrElse(Predicate<B> p, Supplier<A> zero) {
         return new Left<>(value);
+    }
+
+    @Override
+    public <C> Either<C, B> leftMap(final Function1<A, C> f) {
+        return new Left<>(f.apply(value));
+    }
+
+    @Override
+    public Maybe<B> toOption() {
+        return Maybe.none();
     }
 
     @Override

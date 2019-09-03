@@ -9,4 +9,8 @@ public interface Functor<F extends Higher> extends Invariant<F> {
     default <A, B> Higher<F, B> imap(Higher<F, A> fa, Function1<A, B> f, Function1<B, A> g) {
         return map(fa, f);
     }
+
+    default <A, B> Higher<F, B> as(Higher<F, A> fa, B b) {
+        return map(fa, a -> b);
+    }
 }

@@ -3,6 +3,7 @@ package io.mitallast.either;
 import io.mitallast.higher.Higher;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Supplier;
+import io.mitallast.maybe.Maybe;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -46,4 +47,8 @@ public interface Either<L, R> extends Higher<Either<L, ?>, R> {
     <C> Either<L, C> map(Function1<R, C> f);
 
     Either<L, R> filterOrElse(Predicate<R> p, Supplier<L> zero);
+
+    <C> Either<C, R> leftMap(Function1<L, C> f);
+
+    Maybe<R> toOption();
 }

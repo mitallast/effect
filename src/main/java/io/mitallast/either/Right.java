@@ -2,6 +2,7 @@ package io.mitallast.either;
 
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Supplier;
+import io.mitallast.maybe.Maybe;
 
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -87,6 +88,17 @@ public final class Right<A, B> implements Either<A, B> {
         } else {
             return new Left<>(zero.get());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <C> Either<C, B> leftMap(final Function1<A, C> f) {
+        return (Either<C, B>) this;
+    }
+
+    @Override
+    public Maybe<B> toOption() {
+        return Maybe.some(value);
     }
 
     @Override

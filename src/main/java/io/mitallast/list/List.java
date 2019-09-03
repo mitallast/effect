@@ -82,6 +82,20 @@ public abstract class List<A> implements Iterable<A>, Higher<List, A> {
         } while (true);
     }
 
+    public List<A> reverse() {
+        List<A> current = this;
+        List<A> build = nil();
+        do {
+            if (current.isEmpty()) {
+                return build;
+            } else {
+                build = build.prepend(current.head());
+                current = current.tail();
+            }
+
+        } while (true);
+    }
+
     private static final class Cons<A> extends List<A> {
         private final A head;
         private final List<A> tail;
