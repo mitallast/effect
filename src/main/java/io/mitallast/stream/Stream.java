@@ -3,25 +3,28 @@ package io.mitallast.stream;
 import io.mitallast.categories.Functor;
 import io.mitallast.either.Either;
 import io.mitallast.higher.Higher;
+import io.mitallast.io.Async;
 import io.mitallast.io.ExitCase;
 import io.mitallast.io.Sync;
 import io.mitallast.io.Timer;
 import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
+import io.mitallast.lambda.Function3;
 import io.mitallast.lambda.Supplier;
 import io.mitallast.list.List;
 import io.mitallast.maybe.Maybe;
 import io.mitallast.product.Tuple2;
 
-import javax.swing.*;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
 import java.util.function.LongFunction;
+import java.util.function.Predicate;
 
 public final class Stream<F extends Higher, O> {
     private final FreeC<Algebra<F, O, ?>, Unit> free;
@@ -57,6 +60,22 @@ public final class Stream<F extends Higher, O> {
         return attempt().append(() ->
             delays.flatMap(delay ->
                 Stream.sleep(delay, timer).<Either<Throwable, O>>drain().append(this::attempt)));
+    }
+
+    public Stream<F, O> cons(Chunk<O> c) {
+        if (c.isEmpty()) return this;
+        else return Stream.<F, O>chunk(c).append(() -> this);
+    }
+
+    public Stream<F, Chunk<O>> chunks() {
+        return invariantOps().repeatPull(tp -> tp.<Chunk<O>>uncons().flatMap(opt -> opt.fold(
+            () -> Pull.pure(Maybe.none()),
+            t -> {
+                var hd = t.t1();
+                var tl = t.t2();
+                return Pull.<F, Chunk<O>>output1(hd).as(Maybe.some(tl));
+            }
+        )));
     }
 
     public <O2> Stream<F, O2> evalMap(Function1<O, Higher<F, O2>> f) {
@@ -111,6 +130,10 @@ public final class Stream<F extends Higher, O> {
         return Stream.fromFreeC(Algebra.scope(get()).handleErrorWith(e -> h.apply(e).get()));
     }
 
+    public Stream<F, Maybe<O>> last() {
+        return pull().<Maybe<O>>last().flatMap(Pull::output1).stream();
+    }
+
     public <O2> Stream<F, O2> map(Function1<O, O2> f) {
         return new ToPull<>(free).echo().mapOutput(f).streamNoScope();
     }
@@ -128,6 +151,41 @@ public final class Stream<F extends Higher, O> {
 
     public Stream<F, O> repeat() {
         return append(this::repeat);
+    }
+
+    public <O2> Stream<F, O2> rethrow() {
+        @SuppressWarnings("unchecked")
+        var cast = (Stream<F, Either<Throwable, O2>>) this;
+        return cast.chunks().flatMap(new Function1<Chunk<Either<Throwable, O2>>, Stream<F, O2>>() {
+            @Override
+            public Stream<F, O2> apply(final Chunk<Either<Throwable, O2>> c) {
+                var firstError = c.find(Either::isLeft).map(e -> e.left().get());
+                return firstError.fold(
+                    () -> Stream.chunk(c.filter(Either::isRight).map(e -> e.right().get())),
+                    Stream::raiseError
+                );
+            }
+        });
+    }
+
+    public Stream<F, O> take(long n) {
+        return pull().take(n).stream();
+    }
+
+    public Stream<F, O> takeRight(int n) {
+        return pull()
+            .takeRight(n)
+            .flatMap(cq ->
+                cq.chunks.foldLeft(
+                    Pull.done(),
+                    (acc, c) -> acc.flatMap(u -> Pull.output(c))
+                )
+            )
+            .stream();
+    }
+
+    public Stream<F, O> takeThrough(Predicate<O> p) {
+        return this.pull().takeThrough(p).stream();
     }
 
     public <O2> Stream<F, O2> drain() {
@@ -219,11 +277,11 @@ public final class Stream<F extends Higher, O> {
         });
     }
 
-    private static <F extends Higher, R> Stream<F, Tuple2<Resource<F>, R>> bracketWithResource(
+    private static <F extends Higher, R> Stream<F, Tuple2<io.mitallast.stream.Resource<F>, R>> bracketWithResource(
         final Higher<F, R> acquire,
         final Function2<R, ExitCase<Throwable>, Higher<F, Unit>> release
     ) {
-        return fromFreeC(Algebra.<F, Tuple2<Resource<F>, R>, R>acquire(acquire, release).flatMap(t -> {
+        return fromFreeC(Algebra.<F, Tuple2<io.mitallast.stream.Resource<F>, R>, R>acquire(acquire, release).flatMap(t -> {
             var r = t.t1();
             var res = t.t2();
             return Stream.<F, R>emit(r).map(o -> new Tuple2<>(res, o)).get();
@@ -264,10 +322,6 @@ public final class Stream<F extends Higher, O> {
 
     public static <F extends Higher, O> Stream<F, O> eval(Higher<F, O> fo) {
         return Stream.fromFreeC(Algebra.<F, O, O>eval(fo).flatMap(Algebra::output1));
-    }
-
-    public static <F extends Higher, O> Stream<F, O> repeatEval(Higher<F, O> fo) {
-        return eval(fo).repeat();
     }
 
     public static <F extends Higher> Stream<F, Unit> sleep(Duration d, Timer<F> timer) {
@@ -339,6 +393,101 @@ public final class Stream<F extends Higher, O> {
         return Stream.<F, A>emit(start).append(() -> eval(f.apply(start)).flatMap(a -> iterateEval(a, f)));
     }
 
+    public static <F extends Higher> Stream<F, Unit> never(Async<F> F) {
+        return Stream.eval(F.never());
+    }
+
+    public static <F extends Higher, O> Stream<F, O> raiseError(Throwable e) {
+        return fromFreeC(Algebra.raiseError(e));
+    }
+
+    public static <F extends Higher> Stream<F, Integer> random(Sync<F> F) {
+        return Stream.eval(F.delay(Random::new)).flatMap(random -> {
+            var loop = new Supplier<Stream<F, Integer>>() {
+                @Override
+                public Stream<F, Integer> get() {
+                    return Stream.<F, Integer>emit(random.nextInt()).append(this);
+                }
+            };
+            return loop.get();
+        });
+    }
+
+    public static <F extends Higher> Stream<F, Integer> randomSeeded(long seed) {
+        return Stream.suspend(() -> {
+            var r = new Random(seed);
+            var loop = new Supplier<Stream<F, Integer>>() {
+                @Override
+                public Stream<F, Integer> get() {
+                    return Stream.<F, Integer>emit(r.nextInt()).append(this);
+                }
+            };
+            return loop.get();
+        });
+    }
+
+    public static <F extends Higher> Stream<F, Integer> range(int start, int stopExclusive) {
+        return range(start, stopExclusive, 1);
+    }
+
+    public static <F extends Higher> Stream<F, Integer> range(int start, int stopExclusive, int by) {
+        return unfold(start, i -> {
+            if ((by > 0 && i < stopExclusive && start < stopExclusive) ||
+                (by < 0 && i > stopExclusive && start > stopExclusive)) {
+                return Maybe.some(new Tuple2<>(i, i + by));
+            } else {
+                return Maybe.none();
+            }
+        });
+    }
+
+    public static <F extends Higher> Stream<F, Tuple2<Integer, Integer>> ranges(int start, int stopExclusive, int size) {
+        if (size <= 0) throw new IllegalArgumentException("size must be greater than 0");
+        return unfold(start, lower -> {
+            if (lower < stopExclusive) {
+                return Maybe.some(new Tuple2<>(new Tuple2<>(lower, Math.min(stopExclusive, lower + size)), lower + size));
+            } else {
+                return Maybe.none();
+            }
+        });
+    }
+
+    public static <F extends Higher, O> Stream<F, O> repeatEval(Higher<F, O> fo) {
+        return eval(fo).repeat();
+    }
+
+    public static <F extends Higher, O> Stream<F, O> retry(
+        final Higher<F, O> fo,
+        final Duration delay,
+        final Function1<Duration, Duration> nextDelay,
+        final int maxAttempts,
+        final Timer<F> timer
+    ) {
+        return retry(fo, delay, nextDelay, maxAttempts, e -> !(e instanceof Error), timer);
+    }
+
+    public static <F extends Higher, O> Stream<F, O> retry(
+        final Higher<F, O> fo,
+        final Duration delay,
+        final Function1<Duration, Duration> nextDelay,
+        final int maxAttempts,
+        final Predicate<Throwable> retriable,
+        final Timer<F> timer
+    ) {
+        assert maxAttempts > 0 : "max attempts should be greater than 0";
+        var delays = Stream.<F, Duration, Duration>unfold(delay, d -> Maybe.some(new Tuple2<>(d, nextDelay.apply(d))));
+        return Stream.eval(fo)
+            .attempts(delays, timer)
+            .take(maxAttempts)
+            .takeThrough(e -> e.fold(
+                retriable::test,
+                u -> false
+            ))
+            .last()
+            .map(Maybe::get)
+            .rethrow();
+    }
+
     public static <F extends Higher, O> Stream<F, O> suspend(Supplier<Stream<F, O>> s) {
         return fromFreeC(Algebra.suspend(() -> s.get().free));
     }
@@ -377,6 +526,7 @@ public final class Stream<F extends Higher, O> {
     }
 
     final static class InvariantOps<F extends Higher, O> {
+
         private final FreeC<Algebra<F, O, ?>, Unit> free;
 
         private InvariantOps(final FreeC<Algebra<F, O, ?>, Unit> free) {
@@ -420,8 +570,139 @@ public final class Stream<F extends Higher, O> {
             })));
         }
 
+        public Pull<F, O, Maybe<Tuple2<Chunk<O>, Stream<F, O>>>> unconsN(int n, boolean allowFewer) {
+            if (n <= 0) return Pull.pure(Maybe.some(new Tuple2<>(Chunk.empty(), self())));
+            else {
+                var go = new Function3<
+                    List<Chunk<O>>,
+                    Integer,
+                    Stream<F, O>,
+                    Pull<F, O, Maybe<Tuple2<Chunk<O>, Stream<F, O>>>>>() {
+
+                    @Override
+                    public Pull<F, O, Maybe<Tuple2<Chunk<O>, Stream<F, O>>>> apply(
+                        final List<Chunk<O>> acc,
+                        final Integer n,
+                        final Stream<F, O> s) {
+                        var go = this;
+
+                        return s.pull()
+                            .<O>uncons()
+                            .flatMap(opt -> opt.fold(
+                                () -> {
+                                    if (allowFewer && acc.nonEmpty()) {
+                                        return Pull.pure(Maybe.some(new Tuple2<>(Chunk.concat(acc.reverse()), Stream.empty())));
+                                    } else {
+                                        return Pull.pure(Maybe.none());
+                                    }
+                                },
+                                t -> {
+                                    var hd = t.t1();
+                                    var tl = t.t2();
+                                    if (hd.size() < n) {
+                                        return go.apply(acc.prepend(hd), n - hd.size(), tl);
+                                    } else if (hd.size() == n) {
+                                        return Pull.pure(Maybe.some(new Tuple2<>(
+                                            Chunk.concat(acc.prepend(hd).reverse()),
+                                            tl
+                                        )));
+                                    } else {
+                                        var fx = hd.splitAt(n);
+                                        return Pull.pure(Maybe.some(new Tuple2<>(
+                                            Chunk.concat(acc.prepend(fx.t1()).reverse()),
+                                            tl.cons(fx.t2())
+                                        )));
+                                    }
+                                }
+                            ));
+                    }
+                };
+                return go.apply(List.nil(), n, self());
+            }
+        }
+
+        public Pull<F, O, Maybe<Stream<F, O>>> take(final long n) {
+            if (n <= 0) return Pull.pure(Maybe.none());
+            else return this.<O>uncons().flatMap(opt -> opt.fold(
+                () -> Pull.pure(Maybe.none()),
+                t -> {
+                    var hd = t.t1();
+                    var tl = t.t2();
+                    var m = hd.size();
+                    if (m < n) return Pull.<F, O>output(hd).flatMap(unit -> tl.pull().take(n - m));
+                    else if (m == n) return Pull.<F, O>output(hd).as(Maybe.some(tl));
+                    else {
+                        var s = hd.splitAt((int) n);
+                        return Pull.<F, O>output(s.t1()).as(Maybe.some(tl.cons(s.t2())));
+                    }
+                }
+            ));
+        }
+
+        public Pull<F, O, Chunk.CQueue<O>> takeRight(int n) {
+            if (n <= 0) return Pull.pure(Chunk.CQueue.empty());
+            else {
+                var go = new Function2<Chunk.CQueue<O>, Stream<F, O>, Pull<F, O, Chunk.CQueue<O>>>() {
+
+                    @Override
+                    public Pull<F, O, Chunk.CQueue<O>> apply(Chunk.CQueue<O> acc, Stream<F, O> s) {
+                        var go = this;
+                        return s.pull().unconsN(n, true).flatMap(opt -> opt.fold(
+                            () -> Pull.pure(acc),
+                            t -> {
+                                var hd = t.t1();
+                                var tl = t.t2();
+                                return go.apply(acc.drop(hd.size()).append(hd), tl);
+                            }
+                        ));
+                    }
+                };
+                return go.apply(Chunk.CQueue.empty(), self());
+            }
+        }
+
+        public Pull<F, O, Maybe<Stream<F, O>>> takeThrough(Predicate<O> p) {
+            return takeWhile(p, true);
+        }
+
+        public Pull<F, O, Maybe<Stream<F, O>>> takeWhile(Predicate<O> p, boolean takeFailure) {
+            return this.<O>uncons().flatMap(opt -> opt.fold(
+                () -> Pull.pure(Maybe.none()),
+                t -> {
+                    var hd = t.t1();
+                    var tl = t.t2();
+                    return hd.indexWhere(o -> !p.test(o)).fold(
+                        () -> Pull.<F, O>output(hd).flatMap(u -> tl.pull().takeWhile(p, takeFailure)),
+                        idx -> {
+                            var toTake = takeFailure ? idx + 1 : idx;
+                            var fx = hd.splitAt(toTake);
+                            return Pull.<F, O>output(fx.t1()).flatMap(u -> Pull.pure(Maybe.some(tl.cons(fx.t2()))));
+                        }
+                    );
+                }
+            ));
+        }
+
         public Pull<F, O, Unit> echo() {
             return Pull.fromFreeC(free);
+        }
+
+        public <O2> Pull<F, O2, Maybe<O>> last() {
+            var go = new Function2<Maybe<O>, Stream<F, O>, Pull<F, O2, Maybe<O>>>() {
+                @Override
+                public Pull<F, O2, Maybe<O>> apply(final Maybe<O> prev, final Stream<F, O> s) {
+                    var go = this;
+                    return s.pull().<O2>uncons().flatMap(opt -> opt.fold(
+                        () -> Pull.pure(prev),
+                        t -> {
+                            var hd = t.t1();
+                            var tl = t.t2();
+                            return go.apply(hd.last().orElse(prev), tl);
+                        }
+                    ));
+                }
+            };
+            return go.apply(Maybe.none(), self());
         }
     }
 

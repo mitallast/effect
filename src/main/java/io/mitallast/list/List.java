@@ -6,6 +6,7 @@ import io.mitallast.lambda.Function2;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.function.Predicate;
 
 public abstract class List<A> implements Iterable<A>, Higher<List, A> {
     private List() {
@@ -20,6 +21,15 @@ public abstract class List<A> implements Iterable<A>, Higher<List, A> {
     }
 
     public abstract A head();
+
+    public A last() {
+        if (isEmpty()) throw new NoSuchElementException();
+        var curr = this;
+        while (curr.tail().nonEmpty()) {
+            curr = curr.tail();
+        }
+        return curr.head();
+    }
 
     public abstract List<A> tail();
 
@@ -38,6 +48,14 @@ public abstract class List<A> implements Iterable<A>, Higher<List, A> {
                 next = next.tail();
             }
         } while (true);
+    }
+
+    public final List<A> prepend(final Iterable<A> all) {
+        List<A> acc = this;
+        for (A a : all) {
+            acc = acc.prepend(a);
+        }
+        return acc;
     }
 
     public <B> List<B> map(Function1<A, B> f) {
@@ -94,6 +112,40 @@ public abstract class List<A> implements Iterable<A>, Higher<List, A> {
             }
 
         } while (true);
+    }
+
+    public List<A> drop(final int n) {
+        var curr = this;
+        var count = n;
+        while (curr.nonEmpty() && count > 0) {
+            curr = curr.tail();
+            count--;
+        }
+        return curr;
+    }
+
+    public A apply(final int n) {
+        var rest = drop(n);
+        if (n < 0 || rest.isEmpty()) throw new IndexOutOfBoundsException();
+        return rest.head();
+    }
+
+    public boolean forall(Predicate<A> p) {
+        var curr = this;
+        while (curr.nonEmpty()) {
+            if (!p.test(curr.head())) return false;
+            curr = curr.tail();
+        }
+        return true;
+    }
+
+    public boolean exists(Predicate<A> p) {
+        var curr = this;
+        while (curr.nonEmpty()) {
+            if (p.test(curr.head())) return true;
+            curr = curr.tail();
+        }
+        return false;
     }
 
     private static final class Cons<A> extends List<A> {

@@ -1,5 +1,6 @@
 package io.mitallast.stream;
 
+import io.mitallast.data.Queue;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.list.List;
@@ -9,6 +10,7 @@ import io.mitallast.product.Tuple2;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -20,6 +22,10 @@ abstract class Chunk<O> implements Iterable<O> {
     abstract public int size();
 
     abstract public O apply(int i);
+
+    final public Chunk<O> take(int n) {
+        return splitAt(n).t1();
+    }
 
     abstract public void copyToArray(O[] xs, int start);
 
@@ -299,6 +305,18 @@ abstract class Chunk<O> implements Iterable<O> {
         return Chunk.buffer(builder);
     }
 
+    public static <A> Chunk<A> concat(Iterable<Chunk<A>> chunks) {
+        var size = 0;
+        for (Chunk<A> chunk : chunks) {
+            size += chunk.size();
+        }
+        var builder = new ArrayList<A>(size);
+        for (Chunk<A> chunk : chunks) {
+            chunk.copyToBuffer(builder);
+        }
+        return Chunk.buffer(builder);
+    }
+
     public static <A> Chunk<A> seq(Collection<A> seq) {
         return indexedSeq(new ArrayList<>(seq));
     }
@@ -360,6 +378,135 @@ abstract class Chunk<O> implements Iterable<O> {
                 r.add(seq.get(i));
             }
             return new Tuple2<>(Chunk.indexedSeq(l), Chunk.indexedSeq(r));
+        }
+    }
+
+    final static class CQueue<A> {
+        final Queue<Chunk<A>> chunks;
+        final int size;
+
+        private CQueue(final Queue<Chunk<A>> chunks, final int size) {
+            this.chunks = chunks;
+            this.size = size;
+        }
+
+        public Iterator<A> iterator() {
+            return new Iterator<A>() {
+                final Iterator<Chunk<A>> chunksIterator = chunks.iterator();
+                Iterator<A> chunkIterator = null;
+
+                @Override
+                public boolean hasNext() {
+                    while (true) {
+                        if (chunkIterator != null) {
+                            if (chunkIterator.hasNext()) {
+                                return true;
+                            } else {
+                                chunkIterator = null;
+                            }
+                        } else {
+                            if (chunksIterator.hasNext()) {
+                                chunkIterator = chunksIterator.next().iterator();
+                            } else {
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public A next() {
+                    if (hasNext()) {
+                        assert chunkIterator != null;
+                        return chunkIterator.next();
+                    } else throw new NoSuchElementException();
+                }
+            };
+        }
+
+        public CQueue<A> prepend(Chunk<A> c) {
+            return new CQueue<>(chunks.prepend(c), c.size() + size);
+        }
+
+        public CQueue<A> append(Chunk<A> c) {
+            return new CQueue<>(chunks.append(c), c.size() + size);
+        }
+
+        public CQueue<A> take(int n) {
+            if (n <= 0) return empty();
+            else if (n >= size) return this;
+            else {
+                var acc = Queue.<Chunk<A>>empty();
+                var rem = chunks;
+                var toTake = n;
+                while (true) {
+                    var t = rem.dequeue();
+                    var next = t.t1();
+                    var tail = t.t2();
+                    var nextSize = next.size();
+                    if (nextSize < toTake) {
+                        acc = acc.prepend(next);
+                        rem = tail;
+                        toTake = toTake - nextSize;
+                    } else {
+                        return new CQueue<>(acc.append(next.take(toTake)), n);
+                    }
+                }
+            }
+        }
+
+        public CQueue<A> takeRight(int n) {
+            if (n <= 0) return empty();
+            else return drop(size - n);
+        }
+
+        public CQueue<A> drop(int n) {
+            if (n <= 0) return this;
+            else if (n >= size) return empty();
+            else {
+                var rem = chunks;
+                var toDrop = n;
+                while (true) {
+                    if (toDrop <= 0) return new CQueue<>(rem, size - n);
+                    else {
+                        var next = rem.head();
+                        var nextSize = next.size();
+                        if (nextSize < toDrop) {
+                            rem = rem.tail();
+                            toDrop = toDrop - nextSize;
+                        } else if (nextSize == toDrop) {
+                            return new CQueue<>(rem.tail(), size - n);
+                        } else {
+                            return new CQueue<>(rem.tail().append(next.drop(toDrop)), size - n);
+                        }
+                    }
+                }
+            }
+        }
+
+        public CQueue<A> dropRight(int n) {
+            if (n <= 0) return this;
+            else return take(size - n);
+        }
+
+        public Chunk<A> toChunk() {
+            return Chunk.concat(chunks);
+        }
+
+        private final static CQueue empty = new CQueue<>(Queue.empty(), 0);
+
+        @SuppressWarnings("unchecked")
+        public static <A> CQueue<A> empty() {
+            return (CQueue<A>) empty;
+        }
+
+        @SafeVarargs
+        public static <A> CQueue<A> apply(Chunk<A>... chunks) {
+            var acc = CQueue.<A>empty();
+            for (Chunk<A> chunk : chunks) {
+                acc = acc.append(chunk);
+            }
+            return acc;
         }
     }
 }

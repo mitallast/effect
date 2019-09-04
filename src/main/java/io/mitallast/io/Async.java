@@ -224,6 +224,11 @@ public interface Async<F extends Higher> extends LiftIO<F>, Sync<F> {
         return liftIO(ioa, this);
     }
 
+    default <A> Higher<F, A> never() {
+        return async(c -> {
+        });
+    }
+
     default Higher<F, Unit> shift(Executor ec) {
         return async(cb -> ec.execute(() -> cb.accept(Either.right(Unit.unit()))));
     }
