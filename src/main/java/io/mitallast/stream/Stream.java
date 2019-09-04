@@ -26,6 +26,7 @@ import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.Predicate;
 
+@SuppressWarnings("unused")
 public final class Stream<F extends Higher, O> {
     private final FreeC<Algebra<F, O, ?>, Unit> free;
 
@@ -156,15 +157,12 @@ public final class Stream<F extends Higher, O> {
     public <O2> Stream<F, O2> rethrow() {
         @SuppressWarnings("unchecked")
         var cast = (Stream<F, Either<Throwable, O2>>) this;
-        return cast.chunks().flatMap(new Function1<Chunk<Either<Throwable, O2>>, Stream<F, O2>>() {
-            @Override
-            public Stream<F, O2> apply(final Chunk<Either<Throwable, O2>> c) {
-                var firstError = c.find(Either::isLeft).map(e -> e.left().get());
-                return firstError.fold(
-                    () -> Stream.chunk(c.filter(Either::isRight).map(e -> e.right().get())),
-                    Stream::raiseError
-                );
-            }
+        return cast.chunks().flatMap(c -> {
+            var firstError = c.find(Either::isLeft).map(e -> e.left().get());
+            return firstError.fold(
+                () -> Stream.chunk(c.filter(Either::isRight).map(e -> e.right().get())),
+                Stream::raiseError
+            );
         });
     }
 
@@ -250,9 +248,8 @@ public final class Stream<F extends Higher, O> {
         final Higher<F, R> acquire,
         final Function2<R, ExitCase<Throwable>, Higher<F, Unit>> release
     ) {
-        return fromFreeC(Algebra.<F, R, R>acquire(acquire, release).flatMap(t -> {
-            return Stream.<F, R>emit(t.t1()).get();
-        }));
+        return fromFreeC(Algebra.<F, R, R>acquire(acquire, release)
+            .flatMap(t -> Stream.<F, R>emit(t.t1()).get()));
     }
 
     public static <F extends Higher, R> Stream<F, Tuple2<Stream<F, Unit>, R>> bracketCancellable(
@@ -547,7 +544,7 @@ public final class Stream<F extends Higher, O> {
         }
 
         public <O2> Stream<F, O2> repeatPull(Function1<ToPull<F, O>, Pull<F, O2, Maybe<Stream<F, O>>>> using) {
-            return Pull.loop(using.andThen(p -> p.map(m -> m.map(s -> s.pull())))).apply(pull()).stream();
+            return Pull.loop(using.andThen(p -> p.map(m -> m.map(Stream::pull)))).apply(pull()).stream();
         }
     }
 
@@ -728,7 +725,7 @@ public final class Stream<F extends Higher, O> {
         }
 
         static <F extends Higher> Compiler<F, F> sync(Sync<F> F) {
-            return new Compiler<F, F>() {
+            return new Compiler<>() {
                 @Override
                 public <O, B, C> Higher<F, C> apply(final Stream<F, O> s,
                                                     final Supplier<B> init,
@@ -774,7 +771,7 @@ public final class Stream<F extends Higher, O> {
         }
 
         public Higher<G, Maybe<O>> last() {
-            return foldChunks(Maybe.<O>none(), (acc, c) -> c.last().orElse(acc));
+            return foldChunks(Maybe.none(), (acc, c) -> c.last().orElse(acc));
         }
 
         public Higher<G, Chunk<O>> toChunk() {
