@@ -1,7 +1,9 @@
 package io.mitallast.stream;
 
+import io.mitallast.categories.Functor;
 import io.mitallast.either.Either;
 import io.mitallast.higher.Higher;
+import io.mitallast.io.ExitCase;
 import io.mitallast.io.Sync;
 import io.mitallast.io.Timer;
 import io.mitallast.kernel.Unit;
@@ -12,8 +14,14 @@ import io.mitallast.list.List;
 import io.mitallast.maybe.Maybe;
 import io.mitallast.product.Tuple2;
 
+import javax.swing.*;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 
 public final class Stream<F extends Higher, O> {
     private final FreeC<Algebra<F, O, ?>, Unit> free;
@@ -118,6 +126,10 @@ public final class Stream<F extends Higher, O> {
         )));
     }
 
+    public Stream<F, O> repeat() {
+        return append(this::repeat);
+    }
+
     public <O2> Stream<F, O2> drain() {
         return mapChunks(c -> Chunk.empty());
     }
@@ -140,8 +152,110 @@ public final class Stream<F extends Higher, O> {
         return new Stream<>(free);
     }
 
+    @SafeVarargs
+    public static <F extends Higher, O> Stream<F, O> apply(O... os) {
+        return emits(Arrays.asList(os));
+    }
+
+    public static <F extends Higher, O> Stream<F, Either<Throwable, O>> attemptEval(Higher<F, O> fo) {
+        return Stream.fromFreeC(Pull.<F, Either<Throwable, O>, O>attemptEval(fo).flatMap(Pull::output1).get());
+    }
+
+    public static <F extends Higher> Stream<F, Duration> awakeDelay(Duration d, Timer<F> timer, Functor<F> F) {
+        return Stream.eval(timer.clock().monotonic(TimeUnit.NANOSECONDS))
+            .flatMap(start ->
+                Stream.fixedDelay(d, timer).flatMap(u ->
+                    Stream.eval(F.map(
+                        timer.clock().monotonic(TimeUnit.NANOSECONDS),
+                        now -> Duration.ofNanos(now - start)
+                    ))));
+    }
+
+    public static <F extends Higher> Stream<F, Duration> awakeEvery(Duration d, Timer<F> timer, Functor<F> F) {
+        return Stream.eval(timer.clock().monotonic(TimeUnit.NANOSECONDS))
+            .flatMap(start ->
+                Stream.fixedRate(d, timer).flatMap(u ->
+                    Stream.eval(F.map(
+                        timer.clock().monotonic(TimeUnit.NANOSECONDS),
+                        now -> Duration.ofNanos(now - start)
+                    ))));
+    }
+
+    public static <F extends Higher, R> Stream<F, R> bracket(
+        final Higher<F, R> acquire,
+        final Function1<R, Higher<F, Unit>> release
+    ) {
+        return bracketCase(acquire, (r, i) -> release.apply(r));
+    }
+
+    public static <F extends Higher, R> Stream<F, R> bracketCase(
+        final Higher<F, R> acquire,
+        final Function2<R, ExitCase<Throwable>, Higher<F, Unit>> release
+    ) {
+        return fromFreeC(Algebra.<F, R, R>acquire(acquire, release).flatMap(t -> {
+            return Stream.<F, R>emit(t.t1()).get();
+        }));
+    }
+
+    public static <F extends Higher, R> Stream<F, Tuple2<Stream<F, Unit>, R>> bracketCancellable(
+        final Higher<F, R> acquire,
+        final Function1<R, Higher<F, Unit>> release
+    ) {
+        return bracketCaseCancellable(acquire, (r, e) -> release.apply(r));
+    }
+
+    public static <F extends Higher, R> Stream<F, Tuple2<Stream<F, Unit>, R>> bracketCaseCancellable(
+        final Higher<F, R> acquire,
+        final Function2<R, ExitCase<Throwable>, Higher<F, Unit>> release
+    ) {
+        return bracketWithResource(acquire, release).map(t -> {
+            var res = t.t1();
+            var r = t.t2();
+            var stream = Stream.eval(res.release(ExitCase.canceled())).flatMap(e -> e.fold(
+                lt -> Stream.fromFreeC(Algebra.raiseError(lt)),
+                Stream::emit
+            ));
+            return new Tuple2<>(stream, r);
+        });
+    }
+
+    private static <F extends Higher, R> Stream<F, Tuple2<Resource<F>, R>> bracketWithResource(
+        final Higher<F, R> acquire,
+        final Function2<R, ExitCase<Throwable>, Higher<F, Unit>> release
+    ) {
+        return fromFreeC(Algebra.<F, Tuple2<Resource<F>, R>, R>acquire(acquire, release).flatMap(t -> {
+            var r = t.t1();
+            var res = t.t2();
+            return Stream.<F, R>emit(r).map(o -> new Tuple2<>(res, o)).get();
+        }));
+    }
+
+    public static <F extends Higher, O> Stream<F, O> chunk(Chunk<O> os) {
+        return Stream.fromFreeC(Algebra.output(os));
+    }
+
+    public static <F extends Higher, O> Stream<F, O> constant(O o) {
+        return constant(o, 256);
+    }
+
+    public static <F extends Higher, O> Stream<F, O> constant(O o, int chunkSize) {
+        return Stream.<F, O>chunk(Chunk.fill(chunkSize, o)).repeat();
+    }
+
+    public static <F extends Higher> Stream<F, Duration> duration(Sync<F> F) {
+        return Stream.eval(F.delay(System::nanoTime)).flatMap(t0 ->
+            Stream.repeatEval(F.delay(() -> Duration.ofNanos(System.nanoTime() - t0)))
+        );
+    }
+
     public static <F extends Higher, O> Stream<F, O> emit(O value) {
         return fromFreeC(Algebra.output1(value));
+    }
+
+    public static <F extends Higher, O> Stream<F, O> emits(Collection<O> os) {
+        if (os.isEmpty()) return empty();
+        else if (os.size() == 1) return emit(os.iterator().next());
+        else return fromFreeC(Algebra.output(Chunk.seq(os)));
     }
 
     public static <F extends Higher, O> Stream<F, O> empty() {
@@ -152,8 +266,114 @@ public final class Stream<F extends Higher, O> {
         return Stream.fromFreeC(Algebra.<F, O, O>eval(fo).flatMap(Algebra::output1));
     }
 
+    public static <F extends Higher, O> Stream<F, O> repeatEval(Higher<F, O> fo) {
+        return eval(fo).repeat();
+    }
+
     public static <F extends Higher> Stream<F, Unit> sleep(Duration d, Timer<F> timer) {
         return eval(timer.sleep(d));
+    }
+
+    public static <F extends Higher> Stream<F, Boolean> every(Duration d, Timer<F> timer) {
+        var go = new LongFunction<Stream<F, Boolean>>() {
+            @Override
+            public Stream<F, Boolean> apply(final long lastSpikeNanos) {
+                return Stream.eval(timer.clock().monotonic(TimeUnit.NANOSECONDS)).flatMap(now -> {
+                    if ((now - lastSpikeNanos) > d.toNanos()) {
+                        return Stream.<F, Boolean>emit(true).append(() -> this.apply(now));
+                    } else {
+                        return Stream.<F, Boolean>emit(false).append(() -> this.apply(lastSpikeNanos));
+                    }
+                });
+            }
+        };
+        return go.apply(0);
+    }
+
+    public static <F extends Higher> Stream<F, Unit> fixedDelay(Duration d, Timer<F> timer) {
+        return sleep(d, timer).repeat();
+    }
+
+    public static <F extends Higher> Stream<F, Unit> fixedRate(Duration d, Timer<F> timer) {
+        Supplier<Stream<F, Long>> now = () -> Stream.eval(timer.clock().monotonic(TimeUnit.NANOSECONDS));
+        var loop = new Function1<Long, Stream<F, Unit>>() {
+            @Override
+            public Stream<F, Unit> apply(final Long started) {
+                return now.get().flatMap(finished -> {
+                    var elapsed = finished - started;
+                    return Stream.sleep(d.minusNanos(elapsed), timer)
+                        .append(() -> now.get()
+                            .flatMap(st -> Stream.<F, Unit>emit(Unit.unit())
+                                .append(() -> this.apply(st))));
+                });
+            }
+        };
+        return now.get().flatMap(loop);
+    }
+
+    public static <F extends Higher, A> Stream<F, A> fromIterator(Iterator<A> iterator, Sync<F> F) {
+        return Stream.unfoldEval(iterator, it -> F.flatMap(
+            F.delay(it::hasNext),
+            has -> {
+                if (has) {
+                    return F.map(
+                        F.delay(it::next),
+                        a -> Maybe.some(new Tuple2<>(a, it))
+                    );
+                } else {
+                    return F.pure(Maybe.none());
+                }
+            }
+        ));
+    }
+
+    public static <F extends Higher, A> Stream<F, A> force(Higher<F, Stream<F, A>> f) {
+        return eval(f).flatMap(s -> s);
+    }
+
+    public static <F extends Higher, A> Stream<F, A> iterate(A start, Function1<A, A> f) {
+        return Stream.<F, A>emit(start).append(() -> iterate(f.apply(start), f));
+    }
+
+    public static <F extends Higher, A> Stream<F, A> iterateEval(A start, Function1<A, Higher<F, A>> f) {
+        return Stream.<F, A>emit(start).append(() -> eval(f.apply(start)).flatMap(a -> iterateEval(a, f)));
+    }
+
+    public static <F extends Higher, O> Stream<F, O> suspend(Supplier<Stream<F, O>> s) {
+        return fromFreeC(Algebra.suspend(() -> s.get().free));
+    }
+
+    public static <F extends Higher, S, O> Stream<F, O> unfold(S init, Function1<S, Maybe<Tuple2<O, S>>> f) {
+        var loop = new Function1<S, Stream<F, O>>() {
+            @Override
+            public Stream<F, O> apply(final S s) {
+                return f.apply(s).fold(
+                    Stream::empty,
+                    t -> Stream.<F, O>emit(t.t1()).append(() -> this.apply(t.t2()))
+                );
+            }
+        };
+        return suspend(() -> loop.apply(init));
+    }
+
+    public static <F extends Higher, S, O> Stream<F, O> unfoldChunk(S init, Function1<S, Maybe<Tuple2<Chunk<O>, S>>> f) {
+        return Stream.<F, S, Chunk<O>>unfold(init, f).flatMap(Stream::chunk);
+    }
+
+    public static <F extends Higher, S, O> Stream<F, O> unfoldEval(
+        final S init,
+        final Function1<S, Higher<F, Maybe<Tuple2<O, S>>>> f
+    ) {
+        var loop = new Function1<S, Stream<F, O>>() {
+            @Override
+            public Stream<F, O> apply(final S s) {
+                return eval(f.apply(s)).flatMap(m -> m.fold(
+                    Stream::empty,
+                    t -> Stream.<F, O>emit(t.t1()).append(() -> this.apply(t.t2()))
+                ));
+            }
+        };
+        return suspend(() -> loop.apply(init));
     }
 
     final static class InvariantOps<F extends Higher, O> {

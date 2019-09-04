@@ -220,4 +220,12 @@ public abstract class List<A> implements Iterable<A>, Higher<List, A> {
         }
         return list;
     }
+
+    public static <A> List<A> fill(int size, A value) {
+        List<A> list = nil();
+        for (int i = 0; i < size; i++) {
+            list = list.prepend(value);
+        }
+        return list;
+    }
 }

@@ -7,6 +7,7 @@ import io.mitallast.maybe.Maybe;
 import io.mitallast.product.Tuple2;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -296,6 +297,26 @@ abstract class Chunk<O> implements Iterable<O> {
             chunk.copyToBuffer(builder);
         }
         return Chunk.buffer(builder);
+    }
+
+    public static <A> Chunk<A> seq(Collection<A> seq) {
+        return indexedSeq(new ArrayList<>(seq));
+    }
+
+    public static <A> Chunk<A> seq(List<A> seq) {
+        var buffer = new ArrayList<A>(seq.size());
+        for (A a : seq) {
+            buffer.add(a);
+        }
+        return indexedSeq(buffer);
+    }
+
+    public static <A> Chunk<A> fill(int size, A value) {
+        var buffer = new ArrayList<A>(size);
+        for (int i = 0; i < size; i++) {
+            buffer.add(value);
+        }
+        return indexedSeq(buffer);
     }
 
     private final static class IndexedSeqChunk<O> extends Chunk<O> {
