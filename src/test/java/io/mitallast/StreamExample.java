@@ -1,6 +1,7 @@
 package io.mitallast;
 
 import io.mitallast.io.IO;
+import io.mitallast.kernel.Unit;
 import io.mitallast.maybe.Maybe;
 import io.mitallast.stream.Stream;
 
@@ -16,12 +17,13 @@ public class StreamExample {
         System.out.println(output);
 
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < Integer.MAX_VALUE; i++) {
+//            int max = Integer.MAX_VALUE;
             int max = 10000000;
             long start = System.currentTimeMillis();
-            var task2 = (IO<Maybe<Integer>>) Stream.<IO>range(0, max)
+            var task2 = (IO<Unit>) Stream.<IO>range(0, max)
                 .compile(compiler)
-                .last();
+                .drain();
             task2.unsafeRunSync();
             long end = System.currentTimeMillis();
             System.out.println(String.format("run %d at %d ms", max, end - start));

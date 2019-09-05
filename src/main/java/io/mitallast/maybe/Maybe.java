@@ -59,14 +59,15 @@ public abstract class Maybe<T> implements Higher<Maybe, T> {
         return new Just<>(value);
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> Maybe<T> none() {
-        return new Nothing<>();
+        return (Nothing<T>) Nothing.instance;
     }
 
     public static class Just<T> extends Maybe<T> {
         private final T value;
 
-        Just(T value) {
+        private Just(T value) {
             this.value = value;
         }
 
@@ -145,7 +146,9 @@ public abstract class Maybe<T> implements Higher<Maybe, T> {
     }
 
     public static class Nothing<T> extends Maybe<T> {
-        public Nothing() {
+        private static Nothing instance = new Nothing();
+
+        private Nothing() {
         }
 
         @Override

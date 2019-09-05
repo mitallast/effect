@@ -1,6 +1,7 @@
 package io.mitallast.either;
 
 import io.mitallast.higher.Higher;
+import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Supplier;
 import io.mitallast.maybe.Maybe;
@@ -51,4 +52,17 @@ public interface Either<L, R> extends Higher<Either<L, ?>, R> {
     <C> Either<C, R> leftMap(Function1<L, C> f);
 
     Maybe<R> toOption();
+
+    Either<?, Unit> unit = right(Unit.unit());
+    Either<?, Maybe<?>> none = right(Maybe.none());
+
+    @SuppressWarnings("unchecked")
+    static <L, Unit> Either<L, Unit> unit() {
+        return (Either<L, Unit>) (Either) none;
+    }
+
+    @SuppressWarnings("unchecked")
+    static <L, R> Either<L, Maybe<R>> none() {
+        return (Either<L, Maybe<R>>) (Either) none;
+    }
 }

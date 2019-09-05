@@ -276,26 +276,30 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
     compileLoop(CompileScope<F> scope, FreeC<Algebra<F, O, ?>, Unit> stream, Sync<F> F) {
         return F.flatMap(
             compileLoopGo(scope, stream, F),
-            rr -> {
-                if (rr instanceof RR.Done) {
-                    return F.pure(Maybe.none());
-                } else if (rr instanceof RR.Out) {
-                    var out = (RR.Out<F, O>) rr;
-                    final Chunk<O> head = out.head;
-                    final CompileScope<F> sc = out.scope;
-                    final FreeC<Algebra<F, O, ?>, Unit> tail = out.tail;
-                    return F.pure(Maybe.some(new Tuple3<>(head, sc, tail)));
-                } else if (rr instanceof RR.Interrupted) {
-                    var err = ((RR.Interrupted<F, O>) rr).err;
-                    return err.fold(
-                        () -> F.pure(Maybe.none()),
-                        e -> F.raiseError(e)
-                    );
-                } else {
-                    throw new IllegalArgumentException();
-                }
-            }
+            rr -> compileLoopResult(rr, F)
         );
+    }
+
+    private static <F extends Higher, O, X>
+    Higher<F, Maybe<Tuple3<Chunk<O>, CompileScope<F>, FreeC<Algebra<F, O, ?>, Unit>>>>
+    compileLoopResult(RR<F, X> rr, Sync<F> F) {
+        if (rr instanceof RR.Done) {
+            return F.none();
+        } else if (rr instanceof RR.Out) {
+            var out = (RR.Out<F, O>) rr;
+            final Chunk<O> head = out.head;
+            final CompileScope<F> sc = out.scope;
+            final FreeC<Algebra<F, O, ?>, Unit> tail = out.tail;
+            return F.pure(Maybe.some(new Tuple3<>(head, sc, tail)));
+        } else if (rr instanceof RR.Interrupted) {
+            var err = ((RR.Interrupted<F, O>) rr).err;
+            return err.fold(
+                () -> F.none(),
+                e -> F.raiseError(e)
+            );
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 
     private static <F extends Higher, O, X>

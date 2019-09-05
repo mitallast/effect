@@ -5,6 +5,7 @@ import io.mitallast.higher.Higher;
 import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
+import io.mitallast.maybe.Maybe;
 import io.mitallast.product.Tuple2;
 
 public interface Fiber<F extends Higher, A> extends Higher<Fiber<F, ?>, A> {
@@ -116,5 +117,10 @@ class FiberApplicative<F extends Higher> implements Applicative<Fiber<F, ?>> {
     @Override
     public Higher<Fiber<F, ?>, Unit> unit() {
         return Fiber.apply(F.unit(), F.unit());
+    }
+
+    @Override
+    public <A> Higher<Fiber<F, ?>, Maybe<A>> none() {
+        return Fiber.apply(F.none(), F.unit());
     }
 }

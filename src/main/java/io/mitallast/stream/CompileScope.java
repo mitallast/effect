@@ -194,7 +194,7 @@ final class CompileScope<F extends Higher> {
 
     private Higher<F, Maybe<CompileScope<F>>> findSelfOrChildGo(Token scopeId, Chain<CompileScope<F>> scopes) {
         return scopes.uncons().fold(
-            () -> F.pure(Maybe.none()),
+            () -> F.none(),
             t -> {
                 var scope = t.t1();
                 var tail = t.t2();
@@ -272,7 +272,7 @@ final class CompileScope<F extends Higher> {
         return F.flatMap(
             state.get(),
             s -> {
-                if (!s.open) return F.pure(Maybe.none());
+                if (!s.open) return F.none();
                 else {
                     var allScopes = (s.children.prepend(self)).append(ancestors());
                     return F.flatMap(
@@ -315,10 +315,11 @@ final class CompileScope<F extends Higher> {
     }
 
     public Higher<F, Maybe<Either<Throwable, Token>>> isInterrupted() {
-        return interruptible.fold(
-            () -> F.pure(Maybe.none()),
-            iCtx -> iCtx.ref.get()
-        );
+        if (interruptible.isEmpty()) {
+            return F.none();
+        } else {
+            return interruptible.get().ref.get();
+        }
     }
 
     <A> Higher<F, Either<Either<Throwable, Token>, A>> interruptibleEval(Higher<F, A> f) {

@@ -2,8 +2,10 @@ package io.mitallast.free;
 
 import io.mitallast.categories.Applicative;
 import io.mitallast.higher.Higher;
+import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
+import io.mitallast.maybe.Maybe;
 import io.mitallast.product.Tuple2;
 
 public abstract class FreeApplicative<F extends Higher, A> implements Higher<FreeApplicative<F, ?>, A> {
@@ -113,6 +115,21 @@ public abstract class FreeApplicative<F extends Higher, A> implements Higher<Fre
             @Override
             public <A> Higher<FreeApplicative<S, ?>, A> pure(A a) {
                 return new Pure<>(a);
+            }
+
+            private final Higher<FreeApplicative<S, ?>, Unit> unit = new Pure<>(Unit.unit());
+
+            @Override
+            public Higher<FreeApplicative<S, ?>, Unit> unit() {
+                return unit;
+            }
+
+            private final Higher<FreeApplicative<S, ?>, Maybe<?>> none = new Pure<>(Maybe.none());
+
+            @SuppressWarnings("unchecked")
+            @Override
+            public <A> Higher<FreeApplicative<S, ?>, Maybe<A>> none() {
+                return (Higher<FreeApplicative<S, ?>, Maybe<A>>) (Higher) none;
             }
 
             @Override

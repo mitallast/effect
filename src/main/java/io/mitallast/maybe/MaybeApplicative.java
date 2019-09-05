@@ -2,6 +2,7 @@ package io.mitallast.maybe;
 
 import io.mitallast.categories.Applicative;
 import io.mitallast.higher.Higher;
+import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.product.Tuple2;
 
@@ -9,6 +10,19 @@ public final class MaybeApplicative implements Applicative<Maybe> {
     @Override
     public <A> Maybe<A> pure(A value) {
         return Maybe.apply(value);
+    }
+
+    private final Higher<Maybe, Unit> unit = Maybe.some(Unit.unit());
+    private final Higher<Maybe, Maybe<Object>> none = Maybe.some(Maybe.none());
+
+    @Override
+    public Higher<Maybe, Unit> unit() {
+        return unit;
+    }
+
+    @Override
+    public <A> Higher<Maybe, Maybe<A>> none() {
+        return none.castTUnsafe();
     }
 
     @Override

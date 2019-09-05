@@ -545,7 +545,12 @@ public abstract class IO<A> implements Higher<IO, A> {
     }
 
     public static IO<Unit> unit() {
-        return new Pure<>(Unit.unit());
+        return Pure.unit;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <A> IO<Maybe<A>> none() {
+        return (IO<Maybe<A>>) Pure.none;
     }
 
     public static <A> IO<A> eval(Eval<A> fa) {
@@ -719,6 +724,9 @@ public abstract class IO<A> implements Higher<IO, A> {
     }
 
     public static final class Pure<A> extends IO<A> {
+        private final static IO<Unit> unit = new Pure<>(Unit.unit());
+        private final static IO none = new Pure<>(Maybe.none());
+
         private final A a;
 
         public Pure(A a) {
@@ -886,6 +894,11 @@ public abstract class IO<A> implements Higher<IO, A> {
         @Override
         public IO<Unit> unit() {
             return IO.unit();
+        }
+
+        @Override
+        public <A> IO<Maybe<A>> none() {
+            return IO.none();
         }
 
         @Override

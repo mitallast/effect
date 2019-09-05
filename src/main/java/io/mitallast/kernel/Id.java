@@ -6,6 +6,7 @@ import io.mitallast.categories.Comonad;
 import io.mitallast.either.Either;
 import io.mitallast.higher.Higher;
 import io.mitallast.lambda.Function1;
+import io.mitallast.maybe.Maybe;
 
 public final class Id<A> implements Higher<Id, A> {
     private final A a;
@@ -22,6 +23,19 @@ public final class Id<A> implements Higher<Id, A> {
         return new Id<>(a);
     }
 
+    private final static Id<Unit> unit = apply(Unit.unit());
+    private final static Id<Maybe<Object>> none = apply(Maybe.none());
+
+    public static Id<Unit> unit() {
+        return unit;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <A> Id<Maybe<A>> none() {
+        return (Id<Maybe<A>>) (Id) none;
+    }
+
+
     public static IdInstances instances() {
         return IdInstances.insance;
     }
@@ -36,6 +50,16 @@ final class IdInstances implements Bimonad<Id>, CommutativeMonad<Id>, Comonad<Id
     @Override
     public <A> Id<A> pure(A a) {
         return Id.apply(a);
+    }
+
+    @Override
+    public Higher<Id, Unit> unit() {
+        return Id.unit();
+    }
+
+    @Override
+    public <A> Higher<Id, Maybe<A>> none() {
+        return Id.none();
     }
 
     @Override

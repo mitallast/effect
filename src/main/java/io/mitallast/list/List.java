@@ -190,6 +190,8 @@ public abstract class List<A> implements Iterable<A>, Higher<List, A> {
     }
 
     private static final class Nil<A> extends List<A> {
+        private final static Nil instance = new Nil();
+
         private Nil() {
         }
 
@@ -253,8 +255,9 @@ public abstract class List<A> implements Iterable<A>, Higher<List, A> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public static <A> List<A> nil() {
-        return new Nil<>();
+        return (List<A>) Nil.instance;
     }
 
     public static <A> List<A> empty() {

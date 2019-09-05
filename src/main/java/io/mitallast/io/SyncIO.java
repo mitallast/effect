@@ -10,6 +10,7 @@ import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.lambda.Supplier;
+import io.mitallast.maybe.Maybe;
 
 public final class SyncIO<A> implements Higher<SyncIO, A> {
     private final IO<A> toIO;
@@ -78,8 +79,16 @@ public final class SyncIO<A> implements Higher<SyncIO, A> {
         return new SyncIO<>(IO.pure(a));
     }
 
+    private final static SyncIO<Unit> unit = new SyncIO<>(IO.unit());
+    private final static SyncIO<Maybe<Object>> none = new SyncIO<>(IO.none());
+
     public static SyncIO<Unit> unit() {
-        return new SyncIO<>(IO.unit());
+        return unit;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <A> SyncIO<Maybe<A>> none() {
+        return (SyncIO<Maybe<A>>) (SyncIO) none;
     }
 
     public static <A> SyncIO<A> eval(Eval<A> fa) {
@@ -121,6 +130,11 @@ class SyncIOSync implements Sync<SyncIO>, StackSafeMonad<SyncIO> {
     @Override
     public SyncIO<Unit> unit() {
         return SyncIO.unit();
+    }
+
+    @Override
+    public <A> Higher<SyncIO, Maybe<A>> none() {
+        return SyncIO.none();
     }
 
     @Override

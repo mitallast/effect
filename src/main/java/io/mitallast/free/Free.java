@@ -10,6 +10,7 @@ import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.lambda.Supplier;
+import io.mitallast.maybe.Maybe;
 
 import java.net.HttpURLConnection;
 import java.util.function.Function;
@@ -357,6 +358,19 @@ class FreeMonad<F extends Higher> implements StackSafeMonad<Free<F, ?>> {
     @Override
     public <A> Free<F, A> pure(A a) {
         return Free.pure(a);
+    }
+
+    private final Higher<Free<F, ?>, Unit> unit = Free.pure(Unit.unit());
+    private final Higher<Free<F, ?>, Maybe<?>> none = Free.pure(Maybe.none());
+
+    @Override
+    public Higher<Free<F, ?>, Unit> unit() {
+        return unit;
+    }
+
+    @Override
+    public <A> Higher<Free<F, ?>, Maybe<A>> none() {
+        return none.castTUnsafe();
     }
 
     @Override

@@ -372,7 +372,7 @@ public final class Stream<F extends Higher, O> {
                         a -> Maybe.some(new Tuple2<>(a, it))
                     );
                 } else {
-                    return F.pure(Maybe.none());
+                    return F.none();
                 }
             }
         ));

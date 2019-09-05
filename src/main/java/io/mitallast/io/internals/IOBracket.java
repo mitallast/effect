@@ -75,22 +75,24 @@ public abstract class IOBracket {
         public void run() {
             result.foreach(
                 err -> cb.accept(Either.left(err)),
-                a -> {
-                    var frame = new BracketReleaseFrame<A, B>(a, release, conn);
-                    IO<B> fb;
-                    try {
-                        fb = use.apply(a);
-                    } catch (Exception e) {
-                        fb = IO.raiseError(e);
-                    }
-                    var onNext = fb.flatMap(frame);
-                    // Registering our cancelable token ensures that in case
-                    // cancellation is detected, `release` gets called
-                    conn.push(frame.cancel());
-                    // Actual execution
-                    IORunLoop.startCancelable(onNext, conn, cb);
-                }
+                this::onResult
             );
+        }
+
+        private void onResult(A a) {
+            var frame = new BracketReleaseFrame<A, B>(a, release, conn);
+            IO<B> fb;
+            try {
+                fb = use.apply(a);
+            } catch (Exception e) {
+                fb = IO.raiseError(e);
+            }
+            var onNext = fb.flatMap(frame);
+            // Registering our cancelable token ensures that in case
+            // cancellation is detected, `release` gets called
+            conn.push(frame.cancel());
+            // Actual execution
+            IORunLoop.startCancelable(onNext, conn, cb);
         }
     }
 
