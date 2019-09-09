@@ -10,6 +10,7 @@ public class GenerateProduct {
             generateProduct(i);
             generateTuple(i);
         }
+        generateTupleBase();
         generateHList();
     }
 
@@ -147,6 +148,38 @@ public class GenerateProduct {
         Files.writeString(file.toPath(), builder);
     }
 
+    private static void generateTupleBase() throws IOException {
+        var builder = new StringBuilder();
+        builder.append("package io.mitallast.product;\n\n");
+
+        builder.append("public interface Tuple extends Product {\n\n");
+
+        for (int arity = 1; arity <= 22; arity++) {
+            builder.append("    static ");
+            renderGenericType(builder, arity);
+            builder.append(" Tuple").append(arity);
+            renderGenericType(builder, arity);
+            builder.append(" of(");
+            for (int i = 1; i <= arity; i++) {
+                if (i > 1) builder.append(", ");
+                builder.append("T").append(i).append(" t").append(i);
+            }
+            builder.append(") {\n");
+            builder.append("        return new Tuple").append(arity).append("<>(");
+            for (int i = 1; i <= arity; i++) {
+                if (i > 1) builder.append(", ");
+                builder.append("t").append(i);
+            }
+            builder.append(");\n");
+            builder.append("    }\n\n");
+        }
+
+        builder.append("}\n\n"); // end of class
+
+        var file = new File("src/main/java/io/mitallast/product/Tuple.java");
+        Files.writeString(file.toPath(), builder);
+    }
+
     private static void generateTuple(int arity) throws IOException {
         var builder = new StringBuilder();
         builder.append("package io.mitallast.product;\n\n");
@@ -161,11 +194,11 @@ public class GenerateProduct {
             if (i > 1) builder.append(", ");
             builder.append("T").append(i);
         }
-        builder.append("> {\n");
+        builder.append("> implements Tuple {\n");
 
         // constructor
 
-        builder.append("    public Tuple").append(arity).append('(');
+        builder.append("    protected Tuple").append(arity).append('(');
         for (int i = 1; i <= arity; i++) {
             if (i > 1) builder.append(", ");
             builder.append("T").append(i).append(" t").append(i);
@@ -234,6 +267,15 @@ public class GenerateProduct {
             builder.append("T").append(i);
         }
         builder.append(", A>");
+    }
+
+    private static void renderGenericType(StringBuilder builder, int arity) {
+        builder.append('<');
+        for (int i = 1; i <= arity; i++) {
+            if (i > 1) builder.append(", ");
+            builder.append("T").append(i);
+        }
+        builder.append(">");
     }
 
     private static void renderHListType(StringBuilder builder, int arity) {

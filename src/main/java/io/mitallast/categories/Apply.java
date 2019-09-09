@@ -3,6 +3,7 @@ package io.mitallast.categories;
 import io.mitallast.higher.Higher;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 public interface Apply<F extends Higher> extends Functor<F>, Semigroupal<F> {
@@ -80,7 +81,7 @@ public interface Apply<F extends Higher> extends Functor<F>, Semigroupal<F> {
 
     @Override
     default <A, B> Higher<F, Tuple2<A, B>> product(Higher<F, A> fa, Higher<F, B> fb) {
-        return ap(map(fa, a -> b -> new Tuple2<>(a, b)), fb);
+        return ap(map(fa, a -> b -> Tuple.of(a, b)), fb);
     }
 
     /**

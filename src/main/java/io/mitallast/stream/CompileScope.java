@@ -14,6 +14,7 @@ import io.mitallast.lambda.Function2;
 import io.mitallast.list.List;
 import io.mitallast.maybe.Maybe;
 import io.mitallast.product.Product2;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 final class CompileScope<F extends Higher> {
@@ -49,10 +50,10 @@ final class CompileScope<F extends Higher> {
             iCtx ->
                 F.flatMap(
                     state.modify(s -> {
-                        if (!s.open) return new Tuple2<>(s, Maybe.<CompileScope<F>>none());
+                        if (!s.open) return Tuple.of(s, Maybe.<CompileScope<F>>none());
                         else {
                             var scope = new CompileScope<F>(newScopeId, Maybe.some(self), iCtx, F);
-                            return new Tuple2<>(s.addChild(scope), Maybe.some(scope));
+                            return Tuple.of(s.addChild(scope), Maybe.some(scope));
                         }
                     }),
                     opt -> opt.fold(
@@ -87,7 +88,7 @@ final class CompileScope<F extends Higher> {
                             if (result.exists(i -> i)) {
                                 return F.map(
                                     register(resource),
-                                    ignore -> Either.right(new Tuple2<>(r, resource))
+                                    ignore -> Either.right(Tuple.of(r, resource))
                                 );
                             } else {
                                 return F.pure(Either.left(result.swap().getOrElse(AcquireAfterScopeClosed::new)));
@@ -123,7 +124,7 @@ final class CompileScope<F extends Higher> {
     public Higher<F, Either<Throwable, Unit>> close(ExitCase<Throwable> ec) {
         var self = this;
         return F.flatMap(
-            state.modify(s -> new Tuple2<>(s.close(), s)),
+            state.modify(s -> Tuple.of(s.close(), s)),
             previous ->
                 F.flatMap(
                     traverseError(previous.children, s -> s.close(ec)),
@@ -352,8 +353,8 @@ final class CompileScope<F extends Higher> {
 
         public Tuple2<State<F>, Maybe<Resource<F>>> unregisterResource(Token id) {
             return resources.deleteFirst(r -> r.id() == id).fold(
-                () -> new Tuple2<>(this, Maybe.none()),
-                t -> new Tuple2<>(this.withResources(t.t2()), Maybe.some(t.t1()))
+                () -> Tuple.of(this, Maybe.none()),
+                t -> Tuple.of(this.withResources(t.t2()), Maybe.some(t.t1()))
             );
         }
 

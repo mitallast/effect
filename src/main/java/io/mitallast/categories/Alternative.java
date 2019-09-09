@@ -2,6 +2,7 @@ package io.mitallast.categories;
 
 import io.mitallast.higher.Higher;
 import io.mitallast.higher.Higher2;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 public interface Alternative<F extends Higher> extends Applicative<F>, MonoidK<F> {
@@ -20,6 +21,6 @@ public interface Alternative<F extends Higher> extends Applicative<F>, MonoidK<F
     ) {
         Higher<F, A> as = FM.flatMap(fgab, gab -> G.bifoldMap(gab, a -> pure(a), b -> empty(), algebra()));
         Higher<F, B> bs = FM.flatMap(fgab, gab -> G.bifoldMap(gab, a -> empty(), b -> pure(b), algebra()));
-        return new Tuple2<>(as, bs);
+        return Tuple.of(as, bs);
     }
 }

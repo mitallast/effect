@@ -6,6 +6,7 @@ import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 public abstract class FreeApplicative<F extends Higher, A> implements Higher<FreeApplicative<F, ?>, A> {
@@ -98,7 +99,7 @@ public abstract class FreeApplicative<F extends Higher, A> implements Higher<Fre
             @Override
             public <A, B> Higher<FreeApplicative<S, ?>, Tuple2<A, B>> product(Higher<FreeApplicative<S, ?>, A> fa,
                                                                               Higher<FreeApplicative<S, ?>, B> fb) {
-                return map2(fa, fb, Tuple2::new);
+                return map2(fa, fb, Tuple::of);
             }
 
             @Override

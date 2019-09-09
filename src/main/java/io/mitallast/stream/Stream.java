@@ -14,6 +14,7 @@ import io.mitallast.lambda.Function3;
 import io.mitallast.lambda.Supplier;
 import io.mitallast.list.List;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 import java.time.Duration;
@@ -270,7 +271,7 @@ public final class Stream<F extends Higher, O> {
                 lt -> Stream.fromFreeC(Algebra.raiseError(lt)),
                 Stream::emit
             ));
-            return new Tuple2<>(stream, r);
+            return Tuple.of(stream, r);
         });
     }
 
@@ -281,7 +282,7 @@ public final class Stream<F extends Higher, O> {
         return fromFreeC(Algebra.<F, Tuple2<io.mitallast.stream.Resource<F>, R>, R>acquire(acquire, release).flatMap(t -> {
             var r = t.t1();
             var res = t.t2();
-            return Stream.<F, R>emit(r).map(o -> new Tuple2<>(res, o)).get();
+            return Stream.<F, R>emit(r).map(o -> Tuple.of(res, o)).get();
         }));
     }
 
@@ -369,7 +370,7 @@ public final class Stream<F extends Higher, O> {
                 if (has) {
                     return F.map(
                         F.delay(it::next),
-                        a -> Maybe.some(new Tuple2<>(a, it))
+                        a -> Maybe.some(Tuple.of(a, it))
                     );
                 } else {
                     return F.none();
@@ -431,7 +432,7 @@ public final class Stream<F extends Higher, O> {
         return unfold(start, i -> {
             if ((by > 0 && i < stopExclusive && start < stopExclusive) ||
                 (by < 0 && i > stopExclusive && start > stopExclusive)) {
-                return Maybe.some(new Tuple2<>(i, i + by));
+                return Maybe.some(Tuple.of(i, i + by));
             } else {
                 return Maybe.none();
             }
@@ -442,7 +443,7 @@ public final class Stream<F extends Higher, O> {
         if (size <= 0) throw new IllegalArgumentException("size must be greater than 0");
         return unfold(start, lower -> {
             if (lower < stopExclusive) {
-                return Maybe.some(new Tuple2<>(new Tuple2<>(lower, Math.min(stopExclusive, lower + size)), lower + size));
+                return Maybe.some(Tuple.of(Tuple.of(lower, Math.min(stopExclusive, lower + size)), lower + size));
             } else {
                 return Maybe.none();
             }
@@ -472,7 +473,7 @@ public final class Stream<F extends Higher, O> {
         final Timer<F> timer
     ) {
         assert maxAttempts > 0 : "max attempts should be greater than 0";
-        var delays = Stream.<F, Duration, Duration>unfold(delay, d -> Maybe.some(new Tuple2<>(d, nextDelay.apply(d))));
+        var delays = Stream.<F, Duration, Duration>unfold(delay, d -> Maybe.some(Tuple.of(d, nextDelay.apply(d))));
         return Stream.eval(fo)
             .attempts(delays, timer)
             .take(maxAttempts)
@@ -563,12 +564,12 @@ public final class Stream<F extends Higher, O> {
             return Pull.fromFreeC(Algebra.<F, O2, O>uncons(free).map(m -> m.map(t -> {
                 var hd = t.t1();
                 var tl = t.t2();
-                return new Tuple2<>(hd, Stream.fromFreeC(tl));
+                return Tuple.of(hd, Stream.fromFreeC(tl));
             })));
         }
 
         public Pull<F, O, Maybe<Tuple2<Chunk<O>, Stream<F, O>>>> unconsN(int n, boolean allowFewer) {
-            if (n <= 0) return Pull.pure(Maybe.some(new Tuple2<>(Chunk.empty(), self())));
+            if (n <= 0) return Pull.pure(Maybe.some(Tuple.of(Chunk.empty(), self())));
             else {
                 var go = new Function3<
                     List<Chunk<O>>,
@@ -588,7 +589,7 @@ public final class Stream<F extends Higher, O> {
                             .flatMap(opt -> opt.fold(
                                 () -> {
                                     if (allowFewer && acc.nonEmpty()) {
-                                        return Pull.pure(Maybe.some(new Tuple2<>(Chunk.concat(acc.reverse()), Stream.empty())));
+                                        return Pull.pure(Maybe.some(Tuple.of(Chunk.concat(acc.reverse()), Stream.empty())));
                                     } else {
                                         return Pull.pure(Maybe.none());
                                     }
@@ -599,13 +600,13 @@ public final class Stream<F extends Higher, O> {
                                     if (hd.size() < n) {
                                         return go.apply(acc.prepend(hd), n - hd.size(), tl);
                                     } else if (hd.size() == n) {
-                                        return Pull.pure(Maybe.some(new Tuple2<>(
+                                        return Pull.pure(Maybe.some(Tuple.of(
                                             Chunk.concat(acc.prepend(hd).reverse()),
                                             tl
                                         )));
                                     } else {
                                         var fx = hd.splitAt(n);
-                                        return Pull.pure(Maybe.some(new Tuple2<>(
+                                        return Pull.pure(Maybe.some(Tuple.of(
                                             Chunk.concat(acc.prepend(fx.t1()).reverse()),
                                             tl.cons(fx.t2())
                                         )));

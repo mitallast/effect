@@ -4,6 +4,7 @@ import io.mitallast.categories.Applicative;
 import io.mitallast.higher.Higher;
 import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 public final class MaybeApplicative implements Applicative<Maybe> {
@@ -32,7 +33,7 @@ public final class MaybeApplicative implements Applicative<Maybe> {
 
     @Override
     public <A, B> Maybe<Tuple2<A, B>> product(Higher<Maybe, A> fa, Higher<Maybe, B> fb) {
-        return $(fa).flatMap(a -> $(fb).flatMap(b -> pure(new Tuple2<>(a, b))));
+        return $(fa).flatMap(a -> $(fb).flatMap(b -> pure(Tuple.of(a, b))));
     }
 
     private <A> Maybe<A> $(Higher<Maybe, A> higher) {

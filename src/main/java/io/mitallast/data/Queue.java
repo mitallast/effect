@@ -2,6 +2,7 @@ package io.mitallast.data;
 
 import io.mitallast.lambda.Function2;
 import io.mitallast.list.List;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 import java.util.Iterator;
@@ -103,9 +104,9 @@ public final class Queue<A> implements Iterable<A> {
     public Tuple2<A, Queue<A>> dequeue() {
         if (out.isEmpty() && in.nonEmpty()) {
             var rev = in.reverse();
-            return new Tuple2<>(rev.head(), new Queue<>(List.nil(), rev.tail()));
+            return Tuple.of(rev.head(), new Queue<>(List.nil(), rev.tail()));
         } else if (out.nonEmpty()) {
-            return new Tuple2<>(out.head(), new Queue<>(in, out.tail()));
+            return Tuple.of(out.head(), new Queue<>(in, out.tail()));
         } else throw new NoSuchElementException();
     }
 

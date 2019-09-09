@@ -8,6 +8,7 @@ import io.mitallast.io.Sync;
 import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 abstract class Resource<F extends Higher> {
@@ -78,9 +79,9 @@ abstract class Resource<F extends Higher> {
                 return F.flatMap(
                     state.<Maybe<Function1<ExitCase<Throwable>, Higher<F, Either<Throwable, Unit>>>>>modify(s -> {
                             if (s.leases != 0) {
-                                return new Tuple2<>(s.withOpen(false), Maybe.none());
+                                return Tuple.of(s.withOpen(false), Maybe.none());
                             } else {
-                                return new Tuple2<>(s.withOpen(false).withoutFinalizer(), s.finalizer);
+                                return Tuple.of(s.withOpen(false).withoutFinalizer(), s.finalizer);
                             }
                         }
                     ),
@@ -93,10 +94,10 @@ abstract class Resource<F extends Higher> {
                 return F.flatten(state.modify(s -> {
                     if (s.isFinished()) {
                         // state is closed and there are no leases, finalizer has to be invoked right away
-                        return new Tuple2<>(s, F.attempt(F.as(finalizer.apply(ExitCase.complete()), false)));
+                        return Tuple.of(s, F.attempt(F.as(finalizer.apply(ExitCase.complete()), false)));
                     } else {
                         // either state is open, or leases are present, either release or `Lease#cancel` will run the finalizer
-                        return new Tuple2<>(s.withFinalizer(ec -> F.attempt(finalizer.apply(ec))), F.pure(Either.right(true)));
+                        return Tuple.of(s.withFinalizer(ec -> F.attempt(finalizer.apply(ec))), F.pure(Either.right(true)));
                     }
                 }));
             }
@@ -105,9 +106,9 @@ abstract class Resource<F extends Higher> {
             public Higher<F, Maybe<Scope.Lease<F>>> lease() {
                 return state.modify(s -> {
                     if (s.open) {
-                        return new Tuple2<>(s.incLeases(), Maybe.some(new TheLease()));
+                        return Tuple.of(s.incLeases(), Maybe.some(new TheLease()));
                     } else {
-                        return new Tuple2<>(s, Maybe.none());
+                        return Tuple.of(s, Maybe.none());
                     }
                 });
             }
@@ -118,11 +119,11 @@ abstract class Resource<F extends Higher> {
                     return F.flatMap(
                         state.<State<F>>modify(s -> {
                             var now = s.incLeases();
-                            return new Tuple2<>(now, now);
+                            return Tuple.of(now, now);
                         }),
                         now -> {
                             if (now.isFinished()) {
-                                return F.flatten(state.modify(s -> new Tuple2<>(
+                                return F.flatten(state.modify(s -> Tuple.of(
                                     s.withoutFinalizer(),
                                     s.finalizer.map(ff -> ff.apply(ExitCase.complete())).getOrElse(pru))));
                             } else return pru;

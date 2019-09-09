@@ -11,6 +11,7 @@ import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.list.List;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 import java.util.*;
@@ -27,10 +28,10 @@ public abstract class Chain<A> implements Higher<Chain, A> {
             if (c instanceof Singleton) {
                 var s = (Singleton<A>) c;
                 if (rights.isEmpty()) {
-                    result = Maybe.some(new Tuple2<>(s.a, empty()));
+                    result = Maybe.some(Tuple.of(s.a, empty()));
                 } else {
                     var next = rights.stream().reduce(Chain::concat).get();
-                    result = Maybe.some(new Tuple2<>(s.a, next));
+                    result = Maybe.some(Tuple.of(s.a, next));
                 }
             } else if (c instanceof Append) {
                 var s = (Append<A>) c;
@@ -40,11 +41,11 @@ public abstract class Chain<A> implements Higher<Chain, A> {
                 var s = (Wrap<A>) c;
                 var tail = fromSeq(s.seq.tail());
                 if (rights.isEmpty()) {
-                    result = Maybe.some(new Tuple2<>(s.seq.head(), tail));
+                    result = Maybe.some(Tuple.of(s.seq.head(), tail));
                 } else {
                     var r = rights.stream().reduce(Chain::concat).get();
                     var next = concat(tail, r);
-                    result = Maybe.some(new Tuple2<>(s.seq.head(), next));
+                    result = Maybe.some(Tuple.of(s.seq.head(), next));
                 }
             } else if (c instanceof Empty) {
                 result = Maybe.none();
@@ -208,7 +209,7 @@ public abstract class Chain<A> implements Higher<Chain, A> {
                     rem = tail;
                     acc = acc.append(a);
                 } else {
-                    return Maybe.some(new Tuple2<>(a, acc.append(tail)));
+                    return Maybe.some(Tuple.of(a, acc.append(tail)));
                 }
             } else {
                 return Maybe.none();

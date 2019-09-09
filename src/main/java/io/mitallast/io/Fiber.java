@@ -6,6 +6,7 @@ import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 public interface Fiber<F extends Higher, A> extends Higher<Fiber<F, ?>, A> {
@@ -105,7 +106,7 @@ class FiberApplicative<F extends Higher> implements Applicative<Fiber<F, ?>> {
 
     @Override
     public <A, B> Higher<Fiber<F, ?>, Tuple2<A, B>> product(Higher<Fiber<F, ?>, A> fa, Higher<Fiber<F, ?>, B> fb) {
-        return map2(fa, fb, Tuple2::new);
+        return map2(fa, fb, Tuple::of);
     }
 
     @Override

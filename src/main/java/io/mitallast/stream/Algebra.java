@@ -11,6 +11,7 @@ import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.lambda.Supplier;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 import io.mitallast.product.Tuple3;
 
@@ -179,7 +180,7 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
                 if (ctx instanceof Token) {
                     var interruptedScopeId = (Token) ctx;
                     return closeScope(scopeId,
-                        Maybe.some(new Tuple2<>(interruptedScopeId, err)),
+                        Maybe.some(Tuple.of(interruptedScopeId, err)),
                         ExitCase.canceled()
                     );
                 } else {
@@ -239,7 +240,7 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
         return Algebra.<F, O, X>step(s, Maybe.none()).map(opt -> opt.map(tuple -> {
             var h = tuple.t1();
             var t = tuple.t3();
-            return new Tuple2<>(h, t);
+            return Tuple.of(h, t);
         }));
     }
 
@@ -290,7 +291,7 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
             final Chunk<O> head = out.head;
             final CompileScope<F> sc = out.scope;
             final FreeC<Algebra<F, O, ?>, Unit> tail = out.tail;
-            return F.pure(Maybe.some(new Tuple3<>(head, sc, tail)));
+            return F.pure(Maybe.some(Tuple.of(head, sc, tail)));
         } else if (rr instanceof RR.Interrupted) {
             var err = ((RR.Interrupted<F, O>) rr).err;
             return err.fold(
@@ -380,7 +381,7 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
                                             nextScope,
                                             () -> compileLoopGo(
                                                 nextScope,
-                                                viewNext.apply(FreeC.Result.pure(Maybe.some(new Tuple3<>(head, outScope.id, tail)))),
+                                                viewNext.apply(FreeC.Result.pure(Maybe.some(Tuple.of(head, outScope.id, tail)))),
                                                 F
                                             )
                                         );
@@ -517,7 +518,7 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
                 var close = (CloseScope<F, O>) view.step;
                 return Algebra.<F, O>closeScope(
                     close.scopeId,
-                    Maybe.some(new Tuple2<>(interruptedScope, interruptedError)),
+                    Maybe.some(Tuple.of(interruptedScope, interruptedError)),
                     close.exitCase
                 ).transformWith(view.next.castUnsafe());
             } else {

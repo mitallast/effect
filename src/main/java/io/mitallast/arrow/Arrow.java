@@ -1,8 +1,8 @@
 package io.mitallast.arrow;
 
-import io.mitallast.higher.Higher;
 import io.mitallast.higher.Higher2;
 import io.mitallast.lambda.Function1;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 public interface Arrow<F extends Higher2> extends Category<F>, Strong<F> {
@@ -28,7 +28,7 @@ public interface Arrow<F extends Higher2> extends Category<F>, Strong<F> {
     }
 
     default <X, Y> Higher2<F, Tuple2<X, Y>, Tuple2<Y, X>> swap() {
-        return lift(xy -> new Tuple2<>(xy.t2(), xy.t1()));
+        return lift(xy -> Tuple.of(xy.t2(), xy.t1()));
     }
 
     @Override
@@ -50,6 +50,6 @@ public interface Arrow<F extends Higher2> extends Category<F>, Strong<F> {
      */
     default <A, B, C> Higher2<F, A, Tuple2<B, C>> merge(Higher2<F, A, B> f,
                                                         Higher2<F, A, C> g) {
-        return andThen(lift(x -> new Tuple2<>(x, x)), split(f, g));
+        return andThen(lift(x -> Tuple.of(x, x)), split(f, g));
     }
 }

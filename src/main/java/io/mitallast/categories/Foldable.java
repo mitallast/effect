@@ -9,6 +9,7 @@ import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple1;
 import io.mitallast.product.Tuple2;
 
@@ -58,7 +59,7 @@ public interface Foldable<F extends Higher> extends UnorderedFoldable<F> {
                                                         Monad<G> G) {
 
         var src = Source.fromFoldable(fa, this);
-        return G.tailRecM(new Tuple2<>(z, src), tuple -> {
+        return G.tailRecM(Tuple.of(z, src), tuple -> {
             var b = tuple.t1();
             var srcB = tuple.t2();
             var unc = srcB.uncons();
@@ -66,7 +67,7 @@ public interface Foldable<F extends Higher> extends UnorderedFoldable<F> {
                 var tuple2 = unc.get();
                 var a = tuple2.t1();
                 var srcA = tuple2.t2();
-                return G.map(f.apply(b, a), bb -> Either.left(new Tuple2<>(bb, srcA.value())));
+                return G.map(f.apply(b, a), bb -> Either.left(Tuple.of(bb, srcA.value())));
             } else {
                 return G.pure(Either.right(b));
             }
@@ -137,7 +138,7 @@ abstract class Source<A> {
         return new Source<>() {
             @Override
             Maybe<Tuple2<A, Eval<Source<A>>>> uncons() {
-                return Maybe.some(new Tuple2<>(a, src));
+                return Maybe.some(Tuple.of(a, src));
             }
         };
     }

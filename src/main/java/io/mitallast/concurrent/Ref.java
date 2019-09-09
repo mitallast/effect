@@ -5,6 +5,7 @@ import io.mitallast.io.Sync;
 import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,13 +66,13 @@ final class SyncRef<F extends Higher, A> implements Ref<F, A> {
         return F.delay(() -> {
             var snapshot = ar.get();
             var hasBeenCalled = new AtomicBoolean(false);
-            return new Tuple2<A, Function1<A, Higher<F, Boolean>>>(snapshot, a -> F.delay(() -> hasBeenCalled.compareAndSet(false, true) && ar.compareAndSet(snapshot, a)));
+            return Tuple.of(snapshot, a -> F.delay(() -> hasBeenCalled.compareAndSet(false, true) && ar.compareAndSet(snapshot, a)));
         });
     }
 
     @Override
     public Higher<F, Boolean> tryUpdate(Function1<A, A> f) {
-        return F.map(tryModify(a -> new Tuple2<>(f.apply(a), Unit.unit())), Maybe::isDefined);
+        return F.map(tryModify(a -> Tuple.of(f.apply(a), Unit.unit())), Maybe::isDefined);
     }
 
     @Override
@@ -91,7 +92,7 @@ final class SyncRef<F extends Higher, A> implements Ref<F, A> {
 
     @Override
     public Higher<F, Unit> update(Function1<A, A> f) {
-        return modify(a -> new Tuple2<>(f.apply(a), Unit.unit()));
+        return modify(a -> Tuple.of(f.apply(a), Unit.unit()));
     }
 
     @Override

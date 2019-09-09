@@ -6,6 +6,7 @@ import io.mitallast.higher.Higher;
 import io.mitallast.kernel.Unit;
 import io.mitallast.lambda.Function1;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 public class EitherApplicative<L> implements Applicative<Either<L, ?>> {
@@ -31,7 +32,7 @@ public class EitherApplicative<L> implements Applicative<Either<L, ?>> {
 
     @Override
     public <A, B> Higher<Either<L, ?>, Tuple2<A, B>> product(Higher<Either<L, ?>, A> fa, Higher<Either<L, ?>, B> fb) {
-        return $(fa).flatMap(a -> $(fb).flatMap(b -> pure(new Tuple2<>(a, b))));
+        return $(fa).flatMap(a -> $(fb).flatMap(b -> pure(Tuple.of(a, b))));
     }
 
     private <A> Either<L, A> $(Higher<Either<L, ?>, A> higher) {

@@ -5,6 +5,7 @@ import io.mitallast.lambda.Function1;
 import io.mitallast.lambda.Function2;
 import io.mitallast.list.List;
 import io.mitallast.maybe.Maybe;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 import java.util.ArrayList;
@@ -170,7 +171,7 @@ abstract class Chunk<O> implements Iterable<O> {
             b.add(t.t2());
             acc = t.t1();
         }
-        return new Tuple2<>(acc, new IndexedSeqChunk<>(b));
+        return Tuple.of(acc, new IndexedSeqChunk<>(b));
     }
 
     final public Iterator<O> reverseIterator() {
@@ -192,8 +193,8 @@ abstract class Chunk<O> implements Iterable<O> {
     }
 
     public Tuple2<Chunk<O>, Chunk<O>> splitAt(int n) {
-        if (n <= 0) return new Tuple2<>(Chunk.empty(), this);
-        else if (n >= size()) return new Tuple2<>(this, Chunk.empty());
+        if (n <= 0) return Tuple.of(Chunk.empty(), this);
+        else if (n >= size()) return Tuple.of(this, Chunk.empty());
         else return splitAtChunk_(n);
     }
 
@@ -377,7 +378,7 @@ abstract class Chunk<O> implements Iterable<O> {
             for (; i < s; i++) {
                 r.add(seq.get(i));
             }
-            return new Tuple2<>(Chunk.indexedSeq(l), Chunk.indexedSeq(r));
+            return Tuple.of(Chunk.indexedSeq(l), Chunk.indexedSeq(r));
         }
     }
 

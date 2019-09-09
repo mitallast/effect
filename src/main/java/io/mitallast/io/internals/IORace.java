@@ -5,6 +5,7 @@ import io.mitallast.io.ContextShift;
 import io.mitallast.io.Fiber;
 import io.mitallast.io.IO;
 import io.mitallast.kernel.Unit;
+import io.mitallast.product.Tuple;
 import io.mitallast.product.Tuple2;
 
 import java.util.concurrent.CompletableFuture;
@@ -99,7 +100,7 @@ public interface IORace {
                 a -> {
                     if (active.getAndSet(false)) {
                         conn.pop();
-                        cb.accept(Either.right(Either.left(new Tuple2<>(a, IOStart.fiber(promiseR, connR)))));
+                        cb.accept(Either.right(Either.left(Tuple.of(a, IOStart.fiber(promiseR, connR)))));
                     } else {
                         promiseL.complete(Either.right(a));
                     }
@@ -119,7 +120,7 @@ public interface IORace {
                 b -> {
                     if (active.getAndSet(false)) {
                         conn.pop();
-                        cb.accept(Either.right(Either.right(new Tuple2<>(IOStart.fiber(promiseL, connL), b))));
+                        cb.accept(Either.right(Either.right(Tuple.of(IOStart.fiber(promiseL, connL), b))));
                     } else {
                         promiseR.complete(Either.right(b));
                     }
