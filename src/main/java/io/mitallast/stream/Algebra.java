@@ -304,6 +304,29 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
     }
 
     private static <F extends Higher, O, X>
+    Higher<F, RR<F, X>> interruptGuard(
+        CompileScope<F> sc,
+        Supplier<Higher<F, RR<F, X>>> next,
+        Function1<FreeC.Result<?>, FreeC<Algebra<F, X, ?>, Unit>> viewNext,
+        Sync<F> F
+    ) {
+        if (sc.isInterruptible()) {
+            return F.flatMap(
+                sc.isInterrupted(),
+                opt -> opt.fold(
+                    next,
+                    either -> either.fold(
+                        err -> compileLoopGo(sc, viewNext.apply(FreeC.Result.raiseError(err)), F),
+                        scopeId -> compileLoopGo(sc, viewNext.apply(FreeC.Result.interrupted(scopeId, Maybe.none())), F)
+                    )
+                )
+            );
+        } else {
+            return next.get();
+        }
+    }
+
+    private static <F extends Higher, O, X>
     Higher<F, RR<F, X>>
     compileLoopGo(
         CompileScope<F> scope,
@@ -324,27 +347,19 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
             } else throw new IllegalStateException("Unexpected interruption context");
         } else if (viewL instanceof FreeC.ViewL.View) {
             var view = (FreeC.ViewL.View<Algebra<F, O, ?>, ?, Unit>) viewL;
-            var viewNext = view.next.<FreeC.Result<?>, FreeC<Algebra<F, X, ?>, Unit>>castUnsafe();
-            Function2<CompileScope<F>, Supplier<Higher<F, RR<F, X>>>, Higher<F, RR<F, X>>> interruptGuard =
-                (sc, next) -> F.flatMap(
-                    sc.isInterrupted(),
-                    opt -> opt.fold(
-                        next,
-                        either -> either.fold(
-                            err -> compileLoopGo(sc, viewNext.apply(FreeC.Result.raiseError(err)), F),
-                            scopeId -> compileLoopGo(sc, viewNext.apply(FreeC.Result.interrupted(scopeId, Maybe.none())), F)
-                        )
-                    )
-                );
+            final Function1<FreeC.Result<?>, FreeC<Algebra<F, X, ?>, Unit>> viewNext = view.next.<FreeC.Result<?>, FreeC<Algebra<F, X, ?>, Unit>>castUnsafe();
+
 
             @SuppressWarnings("unchecked")
             var step = (Algebra<F, O, ?>) view.step;
             if (step instanceof Output) {
                 @SuppressWarnings("unchecked")
                 var output = (Output<F, X>) step;
-                return interruptGuard.apply(
+                return interruptGuard(
                     scope,
-                    () -> F.pure(new RR.Out<F, X>(output.values, scope, viewNext.apply(FreeC.Result.unit)))
+                    () -> F.pure(new RR.Out<F, X>(output.values, scope, viewNext.apply(FreeC.Result.unit))),
+                    viewNext,
+                    F
                 );
             } else if (step instanceof Step) {
                 @SuppressWarnings("unchecked")
@@ -363,9 +378,11 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
                                 err -> compileLoopGo(scope, viewNext.apply(FreeC.Result.raiseError(err)), F),
                                 rr -> {
                                     if (rr instanceof RR.Done) {
-                                        return interruptGuard.apply(
+                                        return interruptGuard(
                                             scope,
-                                            () -> compileLoopGo(scope, viewNext.apply(FreeC.Result.pure(Maybe.none())), F)
+                                            () -> compileLoopGo(scope, viewNext.apply(FreeC.Result.pure(Maybe.none())), F),
+                                            viewNext,
+                                            F
                                         );
                                     } else if (rr instanceof RR.Out) {
                                         var out = (RR.Out<F, X>) rr;
@@ -377,13 +394,15 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
                                         // scope back to the go as that is the scope that is expected to be here.
 
                                         var nextScope = u.scope.fold(() -> outScope, t -> scope);
-                                        return interruptGuard.apply(
+                                        return interruptGuard(
                                             nextScope,
                                             () -> compileLoopGo(
                                                 nextScope,
                                                 viewNext.apply(FreeC.Result.pure(Maybe.some(Tuple.of(head, outScope.id, tail)))),
                                                 F
-                                            )
+                                            ),
+                                            viewNext,
+                                            F
                                         );
                                     } else if (rr instanceof RR.Interrupted) {
                                         var interrupted = (RR.Interrupted<F, X>) rr;
@@ -416,7 +435,7 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
             } else if (step instanceof Acquire) {
                 @SuppressWarnings("unchecked")
                 var acquire = (Acquire<F, ?, Object>) step;
-                return interruptGuard.apply(
+                return interruptGuard(
                     scope,
                     () -> F.flatMap(
                         scope.acquireResource(acquire.resource, acquire.release),
@@ -424,7 +443,9 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
                             var result = FreeC.Result.fromEither(r.map(t -> (Object) t));
                             return compileLoopGo(scope, viewNext.apply(result), F);
                         }
-                    )
+                    ),
+                    viewNext,
+                    F
                 );
             } else if (step instanceof GetScope) {
                 return F.suspend(() ->
@@ -433,7 +454,7 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
             } else if (step instanceof OpenScope) {
                 @SuppressWarnings("unchecked")
                 var open = (OpenScope<F, O>) step;
-                return interruptGuard.apply(
+                return interruptGuard(
                     scope,
                     () -> F.flatMap(
                         scope.open(open.interruptible),
@@ -441,7 +462,9 @@ interface Algebra<F extends Higher, O, R> extends Higher<Algebra<F, O, ?>, R> {
                             err -> compileLoopGo(scope, viewNext.apply(FreeC.Result.raiseError(err)), F),
                             childScope -> compileLoopGo(childScope, viewNext.apply(FreeC.Result.pure(childScope.id)), F)
                         )
-                    )
+                    ),
+                    viewNext,
+                    F
                 );
             } else if (step instanceof CloseScope) {
                 @SuppressWarnings("unchecked")

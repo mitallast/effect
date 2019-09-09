@@ -315,6 +315,10 @@ final class CompileScope<F extends Higher> {
         );
     }
 
+    public boolean isInterruptible() {
+        return interruptible.isDefined();
+    }
+
     public Higher<F, Maybe<Either<Throwable, Token>>> isInterrupted() {
         if (interruptible.isEmpty()) {
             return F.none();
