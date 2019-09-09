@@ -72,7 +72,7 @@ final class DefaultThreadFactory implements ThreadFactory, ForkJoinPool.ForkJoin
 
         @Override
         public final <T> T blockOn(Task<T> thunk) {
-            if (Thread.currentThread() == thunk && !isBlocked && newBlocker()) {
+            if (Thread.currentThread() == this && !isBlocked && newBlocker()) {
                 try {
                     isBlocked = true;
                     var b = new ForkJoinPoolManagedBlocker<>(thunk);

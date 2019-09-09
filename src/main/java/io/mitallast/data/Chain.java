@@ -190,7 +190,7 @@ public abstract class Chain<A> implements Higher<Chain, A> {
             var result = one(f.apply(iterA.next(), iterB.next()));
 
             while (iterA.hasNext() && iterB.hasNext()) {
-                result.append(f.apply(iterA.next(), iterB.next()));
+                result = result.append(f.apply(iterA.next(), iterB.next()));
             }
             return result;
         }
